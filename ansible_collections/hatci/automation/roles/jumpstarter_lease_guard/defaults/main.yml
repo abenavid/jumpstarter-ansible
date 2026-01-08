@@ -1,0 +1,14 @@
+---
+# Defaults for jumpstarter_lease_guard role
+
+# Selector for lease acquisition (e.g., "exporter=vehicle_001")
+jumpstarter_exporter_selector: "exporter={{ jumpstarter_exporter_name | default(inventory_hostname) }}"
+
+# Lease duration (e.g., "30m", "1h", "2h30m")
+jumpstarter_lease_duration: "30m"
+
+# Path to Jumpstarter client config inside the EE
+jumpstarter_client_config: null
+
+# Named Jumpstarter client to use (alternative to client_config)
+jumpstarter_client: null

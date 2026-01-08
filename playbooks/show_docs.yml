@@ -1,0 +1,16 @@
+---
+- name: Show jumpstarter_preflight documentation via Ansible
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Print module documentation path and docstring
+      ansible.builtin.command: >
+        ansible-doc -t module jumpstarter.jumpstarter.jumpstarter_preflight
+      register: docs
+      changed_when: false
+
+    - name: Show docs
+      ansible.builtin.debug:
+        msg: "{{ docs.stdout }}"

@@ -1,0 +1,19 @@
+---
+- name: Preflight with exporter discovery
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    jumpstarter_exporter: test
+
+  tasks:
+    - name: Preflight smoke only (no controller needed)
+      jumpstarter.jumpstarter.jumpstarter_preflight:
+        skip_exporter_query: true
+        check_config_dirs: true
+      register: out
+
+    - name: Show results
+      ansible.builtin.debug:
+        var: out

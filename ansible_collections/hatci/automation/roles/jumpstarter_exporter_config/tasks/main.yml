@@ -1,0 +1,27 @@
+---
+# Tasks for jumpstarter_exporter_config role
+
+- name: Ensure exporters directory exists
+  ansible.builtin.file:
+    path: "{{ jumpstarter_exporters_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Validate exporter template is provided
+  ansible.builtin.assert:
+    that:
+      - jumpstarter_exporter_template is defined
+      - jumpstarter_exporter_template != ""
+    fail_msg: "jumpstarter_exporter_template must be provided (via host vars or extra vars)"
+    quiet: true
+
+- name: Template exporter config file
+  ansible.builtin.template:
+    src: "{{ jumpstarter_exporter_template }}"
+    dest: "{{ jumpstarter_exporters_dir }}/{{ jumpstarter_exporter_name }}.yaml"
+    mode: '0644'
+  register: exporter_config_result
+
+- name: Set fact for exporter config path
+  ansible.builtin.set_fact:
+    jumpstarter_exporter_config_path: "{{ jumpstarter_exporters_dir }}/{{ jumpstarter_exporter_name }}.yaml"

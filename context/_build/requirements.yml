@@ -1,0 +1,7 @@
+collections:
+- community.general
+- ansible.utils
+- containers.podman
+- infra.ee_utilities
+- servicenow.itsm
+- ansible.windows

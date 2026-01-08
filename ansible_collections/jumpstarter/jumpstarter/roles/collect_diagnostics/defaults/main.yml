@@ -1,0 +1,35 @@
+---
+# Where to write diagnostic artifacts inside the EE
+jumpstarter_diagnostics_output_dir: /tmp/jumpstarter_diagnostics
+
+# If true, create a tar.gz bundle of the output directory
+jumpstarter_diagnostics_create_archive: true
+
+# Optional archive path (if empty, role will create one under output_dir)
+jumpstarter_diagnostics_archive_path: ""
+
+# Optional client context for jmp commands
+jumpstarter_diagnostics_client_config: ""
+jumpstarter_diagnostics_client: ""
+
+# If true, skip exporter and lease queries when no client context is provided
+jumpstarter_diagnostics_skip_queries_without_client: true
+
+# If true, run exporter query (jmp get exporters ...)
+jumpstarter_diagnostics_query_exporters: true
+
+# If true, run lease query (jmp get leases ...). If your CLI uses different verbs,
+# you can disable or override commands.
+jumpstarter_diagnostics_query_leases: true
+
+# Command timeout seconds applied via shell-level timeout if available. If empty, no timeout wrapper.
+jumpstarter_diagnostics_cmd_timeout: ""
+
+# Additional arbitrary commands to run (each entry is a string executed via bash -lc)
+jumpstarter_diagnostics_extra_commands: []
+
+# Capture some basic environment details
+jumpstarter_diagnostics_capture_env: true
+
+# If you are using the fake jmp harness, pass PATH env into the role from playbook
+# Example: environment: { PATH: "{{ jumpstarter_test_path_env }}" }

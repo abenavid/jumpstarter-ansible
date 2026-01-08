@@ -1,0 +1,38 @@
+---
+- name: Lease workflow skeleton
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - jumpstarter.jumpstarter
+
+  vars:
+    lease_name: demo_lease_01
+
+  tasks:
+    - name: Create lease (adjust args to match your environment)
+      jumpstarter.jumpstarter.jumpstarter_jmp:
+        args:
+          - create
+          - lease
+          - "{{ lease_name }}"
+          - -o
+          - json
+      register: lease_create
+      failed_when: lease_create.rc != 0
+
+    - name: Show lease create output
+      ansible.builtin.debug:
+        var: lease_create.stdout
+
+    - name: Get leases as json
+      jumpstarter.jumpstarter.jumpstarter_jmp:
+        args:
+          - get
+          - leases
+          - -o
+          - json
+      register: leases
+
+    - name: Print leases
+      ansible.builtin.debug:
+        var: leases.stdout

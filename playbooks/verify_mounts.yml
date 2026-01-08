@@ -1,0 +1,31 @@
+---
+- name: Verify mounts inside EE
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Check client config exists
+      ansible.builtin.stat:
+        path: /etc/jumpstarter/client.yaml
+      register: st
+
+    - name: Show stat
+      ansible.builtin.debug:
+        var: st.stat
+
+    - name: Print first lines if present
+      ansible.builtin.command: bash -lc 'head -n 5 /etc/jumpstarter/client.yaml'
+      register: head_out
+      changed_when: false
+      when: st.stat.exists | default(false)
+
+    - name: Show head
+      ansible.builtin.debug:
+        var: head_out.stdout
+      when: st.stat.exists | default(false)
+
+    - name: Fail with clear message if mount missing
+      ansible.builtin.fail:
+        msg: "client.yaml not present inside EE at /etc/jumpstarter/client.yaml. ansible-navigator is not applying volume mounts."
+      when: not (st.stat.exists | default(false))

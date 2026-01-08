@@ -1,0 +1,36 @@
+---
+- name: Validate exporter exists then power cycle
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - jumpstarter.jumpstarter
+
+  vars:
+    jumpstarter_exporter: test
+
+  tasks:
+    - name: Get exporters as json
+      jumpstarter.jumpstarter.jumpstarter_jmp:
+        args:
+          - get
+          - exporters
+          - -o
+          - json
+      register: exporters
+
+    - name: Parse exporters list
+      ansible.builtin.set_fact:
+        exporters_json: "{{ exporters.stdout | from_json }}"
+
+    - name: Ensure exporter is present
+      ansible.builtin.assert:
+        that:
+          - exporters_json is not none
+          - jumpstarter_exporter in (exporters_json | map(attribute='name') | list)
+        fail_msg: "Exporter not found: {{ jumpstarter_exporter }}"
+
+    - name: Cycle power
+      jumpstarter.jumpstarter.jumpstarter_power:
+        exporter: "{{ jumpstarter_exporter }}"
+        state: cycle
+        wait: 1

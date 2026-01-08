@@ -1,0 +1,30 @@
+---
+# Tasks for jumpstarter_lease_guard role
+# This role is designed to be used with block/rescue/always pattern
+# Use tasks_from: main to acquire lease, tasks_from: always to release
+
+- name: Acquire Jumpstarter lease
+  jumpstarter.jumpstarter.jumpstarter_lease:
+    state: acquire
+    selector: "{{ jumpstarter_exporter_selector }}"
+    duration: "{{ jumpstarter_lease_duration }}"
+    client_config: "{{ jumpstarter_client_config | default(omit) }}"
+    client: "{{ jumpstarter_client | default(omit) }}"
+    output: name
+  register: lease_result
+
+- name: Check lease acquisition result
+  ansible.builtin.assert:
+    that:
+      - lease_result.lease_name is defined
+      - lease_result.lease_name != ""
+    fail_msg: "Failed to acquire lease. Check selector and Jumpstarter availability."
+    quiet: true
+
+- name: Set fact for current lease name
+  ansible.builtin.set_fact:
+    current_lease_name: "{{ lease_result.lease_name }}"
+
+- name: Display lease acquisition
+  ansible.builtin.debug:
+    msg: "Lease {{ current_lease_name }} acquired successfully"

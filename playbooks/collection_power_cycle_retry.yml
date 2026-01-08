@@ -1,0 +1,38 @@
+---
+- name: Power cycle with fallback debug
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - jumpstarter.jumpstarter
+
+  vars:
+    jumpstarter_exporter: test
+
+  tasks:
+    - name: Attempt power cycle
+      block:
+        - name: Cycle power
+          jumpstarter.jumpstarter.jumpstarter_power:
+            exporter: "{{ jumpstarter_exporter }}"
+            state: cycle
+            wait: 1
+            check_rc: true
+      rescue:
+        - name: Grab jmp version and exporters for troubleshooting
+          jumpstarter.jumpstarter.jumpstarter_jmp:
+            args:
+              - version
+          register: version_out
+
+        - name: Run a quick shell command to capture more context
+          jumpstarter.jumpstarter.jumpstarter_shell:
+            exporter: "{{ jumpstarter_exporter }}"
+            command: "j power on"
+          register: recovery
+
+        - name: Print troubleshooting output
+          ansible.builtin.debug:
+            msg:
+              - "jmp_version={{ version_out.stdout }}"
+              - "recovery_stdout={{ recovery.stdout }}"
+              - "recovery_stderr={{ recovery.stderr }}"

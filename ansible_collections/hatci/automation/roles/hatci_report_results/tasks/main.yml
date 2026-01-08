@@ -1,0 +1,52 @@
+---
+# Tasks for hatci_report_results role
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - hatci_base_url is defined and hatci_base_url != ""
+      - hatci_token is defined and hatci_token != ""
+      - hatci_test_event_id is defined and hatci_test_event_id != ""
+      - hatci_test_status in ["PASS", "FAIL"]
+      - hatci_test_summary is defined
+    fail_msg: "Missing required variables for hatci_report_results. Check role defaults and provided vars."
+    quiet: true
+
+- name: Determine test status from play outcome
+  ansible.builtin.set_fact:
+    final_test_status: "{{ hatci_test_status }}"
+  when: hatci_test_status is defined
+
+- name: Override status to FAIL if play failed
+  ansible.builtin.set_fact:
+    final_test_status: "FAIL"
+  when: ansible_failed_tasks is defined and ansible_failed_tasks | length > 0
+
+- name: Collect artifact URLs from Ansible job
+  ansible.builtin.set_fact:
+    final_artifact_urls: "{{ hatci_artifact_urls | default([]) }}"
+
+- name: Add Ansible job artifacts if available
+  ansible.builtin.set_fact:
+    final_artifact_urls: "{{ final_artifact_urls + [ansible_job_url] }}"
+  when:
+    - ansible_job_url is defined
+    - ansible_job_url != ""
+
+- name: Update test event with results
+  hatci.automation.hatci_test_event_update:
+    hatci_base_url: "{{ hatci_base_url }}"
+    hatci_token: "{{ hatci_token }}"
+    verify_tls: "{{ hatci_verify_tls }}"
+    timeout: "{{ hatci_timeout }}"
+    test_event_id: "{{ hatci_test_event_id }}"
+    status: "{{ final_test_status }}"
+    summary: "{{ hatci_test_summary }}"
+    artifact_urls: "{{ final_artifact_urls }}"
+  register: update_result
+
+- name: Display test event update result
+  ansible.builtin.debug:
+    msg:
+      - "Test event {{ hatci_test_event_id }} updated with status: {{ final_test_status }}"
+      - "Artifacts: {{ final_artifact_urls | length }} URLs attached"

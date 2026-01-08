@@ -1,0 +1,159 @@
+---
+# Example playbook for OTA update orchestration on a single vehicle
+# This demonstrates the full workflow using HATCI API and Jumpstarter
+
+- name: OTA Update - Single Vehicle
+  hosts: vehicle_001
+  gather_facts: true
+  vars:
+    # HATCI API configuration
+    hatci_base_url: "{{ lookup('ansible.builtin.env', 'HATCI_BASE_URL', default='https://api.hatci.example.com') }}"
+    hatci_token: "{{ lookup('ansible.builtin.env', 'HATCI_TOKEN', default='') }}"
+
+    # Vehicle information
+    hatci_vin: "1HGBH41JXMN109186"
+    hatci_tester_name: "ansible_automation"
+    hatci_program_name: "OTA_Test_Program"
+    hatci_model_year: "2024"
+    hatci_region: "US"
+    hatci_region_spec: "North America"
+
+    # Source (RROM) version information
+    hatci_source_build_level: "2024.01.01"
+    hatci_source_ecus:
+      - ecu_name: "Gateway"
+        part_number: "GW-2024-001"
+        sw_version: "1.0.0"
+      - ecu_name: "Body Control Module"
+        part_number: "BCM-2024-001"
+        sw_version: "1.0.0"
+
+    # Target (UROM) version information
+    hatci_target_build_level: "2024.02.01"
+    hatci_target_ecus:
+      - ecu_name: "Gateway"
+        part_number: "GW-2024-001"
+        sw_version: "2.0.0"
+      - ecu_name: "Body Control Module"
+        part_number: "BCM-2024-001"
+        sw_version: "2.0.0"
+
+    # Jumpstarter configuration
+    jumpstarter_exporter_name: "{{ inventory_hostname }}"
+    jumpstarter_exporter_template: "{{ playbook_dir }}/../templates/exporter.yaml.j2"
+    jumpstarter_exporters_dir: "/etc/jumpstarter/exporters.d"
+    jumpstarter_lease_duration: "60m"
+    jumpstarter_client_config: "/private/etc/jumpstarter/client.yaml"
+
+    # Test metadata
+    ansible_job_id: "{{ ansible_job_id | default('manual-run') }}"
+    git_sha: "{{ lookup('ansible.builtin.env', 'GIT_SHA', default='unknown') }}"
+    suite_name: "ota_single_vehicle"
+
+  tasks:
+    - name: Preflight checks
+      include_role:
+        name: hatci.automation.hatci_preflight
+      vars:
+        hatci_vin: "{{ hatci_vin }}"
+
+    - name: Configure Jumpstarter exporter
+      include_role:
+        name: hatci.automation.jumpstarter_exporter_config
+
+    - name: Create HATCI test event
+      hatci.automation.hatci_test_event:
+        hatci_base_url: "{{ hatci_base_url }}"
+        hatci_token: "{{ hatci_token }}"
+        vin: "{{ hatci_vin }}"
+        event_id: "{{ target_event_id | default('pending') }}"
+        ansible_job_id: "{{ ansible_job_id }}"
+        git_sha: "{{ git_sha }}"
+        suite_name: "{{ suite_name }}"
+        metadata:
+          playbook: "ota_single_vehicle"
+          host: "{{ inventory_hostname }}"
+      register: test_event_result
+      # Note: event_id will be updated after hatci_request_update runs
+
+    - name: Acquire lease and run OTA update
+      block:
+        - name: Acquire Jumpstarter lease
+          include_role:
+            name: hatci.automation.jumpstarter_lease_guard
+            tasks_from: main
+
+        - name: Request OTA update (create and fix events)
+          include_role:
+            name: hatci.automation.hatci_request_update
+
+        - name: Update test event with target event ID
+          hatci.automation.hatci_test_event_update:
+            hatci_base_url: "{{ hatci_base_url }}"
+            hatci_token: "{{ hatci_token }}"
+            test_event_id: "{{ test_event_result.test_event_id }}"
+            status: "PASS"
+            summary: "Update requested, waiting for deployment"
+            artifact_urls: []
+          when: target_event_id is defined
+
+        - name: Deploy target event
+          hatci.automation.hatci_deploy_event:
+            hatci_base_url: "{{ hatci_base_url }}"
+            hatci_token: "{{ hatci_token }}"
+            event_id: "{{ target_event_id }}"
+            deployment_count: 1
+          register: deployment_result
+
+        - name: Wait for update to complete
+          include_role:
+            name: hatci.automation.hatci_wait_for_update
+          vars:
+            hatci_deployment_id: "{{ deployment_result.deployment_id }}"
+            hatci_poll_timeout_seconds: 3600
+            hatci_poll_interval_seconds: 30
+
+        - name: Placeholder for UI interaction and confirmation
+          ansible.builtin.debug:
+            msg: "TODO: Add Jumpstarter-based UI interaction and confirmation tasks here"
+          # Example tasks that could go here:
+          # - Use Jumpstarter to interact with vehicle UI
+          # - Verify update completion on vehicle display
+          # - Collect diagnostic information
+          # - Take screenshots or logs
+
+        - name: Collect test artifacts
+          ansible.builtin.set_fact:
+            test_artifacts:
+              - name: "deployment_log"
+                content: "{{ deployment_result | to_nice_json }}"
+              - name: "final_status"
+                content: "{{ hatci_final_state | default('UNKNOWN') }}"
+
+      always:
+        - name: Release Jumpstarter lease
+          include_role:
+            name: hatci.automation.jumpstarter_lease_guard
+            tasks_from: always
+
+    - name: Determine test outcome
+      ansible.builtin.set_fact:
+        test_status: "{{ 'PASS' if hatci_final_state in ['COMPLETE', 'COMPLETED', 'SUCCESS'] else 'FAIL' }}"
+        test_summary: >
+          OTA update {{ test_status }}.
+          Deployment: {{ deployment_result.deployment_id | default('unknown') }}.
+          Final state: {{ hatci_final_state | default('UNKNOWN') }}.
+          {% if hatci_final_reason is defined and hatci_final_reason != '' %}
+          Reason: {{ hatci_final_reason }}.
+          {% endif %}
+
+    - name: Report test results
+      include_role:
+        name: hatci.automation.hatci_report_results
+      vars:
+        hatci_test_event_id: "{{ test_event_result.test_event_id }}"
+        hatci_test_status: "{{ test_status }}"
+        hatci_test_summary: "{{ test_summary }}"
+        hatci_artifact_urls:
+          - "{{ ansible_job_url | default('') }}"
+      when: test_event_result.test_event_id is defined

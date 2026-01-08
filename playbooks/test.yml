@@ -1,0 +1,9 @@
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: List drivers
+      command: jmp driver list
+    - name: Cycle power using Jumpstarter mock driver
+      command: jmp shell --exporter test
+      args:
+        stdin: "j power cycle --wait 1\n"

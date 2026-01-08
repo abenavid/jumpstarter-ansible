@@ -1,0 +1,84 @@
+---
+# Tasks for hatci_request_update role
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - hatci_base_url is defined and hatci_base_url != ""
+      - hatci_token is defined and hatci_token != ""
+      - hatci_vin is defined and hatci_vin != ""
+      - hatci_tester_name is defined and hatci_tester_name != ""
+      - hatci_program_name is defined and hatci_program_name != ""
+      - hatci_model_year is defined and hatci_model_year != ""
+      - hatci_region is defined and hatci_region != ""
+      - hatci_source_build_level is defined and hatci_source_build_level != ""
+      - hatci_target_build_level is defined and hatci_target_build_level != ""
+      - hatci_source_ecus | length > 0
+      - hatci_target_ecus | length > 0
+    fail_msg: "Missing required variables for hatci_request_update. Check role defaults and provided vars."
+    quiet: true
+
+- name: Create RROM (source) event
+  hatci.automation.hatci_create_event:
+    hatci_base_url: "{{ hatci_base_url }}"
+    hatci_token: "{{ hatci_token }}"
+    verify_tls: "{{ hatci_verify_tls }}"
+    timeout: "{{ hatci_timeout }}"
+    tester_name: "{{ hatci_tester_name }}"
+    program_name: "{{ hatci_program_name }}"
+    model_year: "{{ hatci_model_year }}"
+    vin: "{{ hatci_vin }}"
+    update_type: RROM
+    region: "{{ hatci_region }}"
+    region_spec: "{{ hatci_region_spec | default(omit) }}"
+    build_level: "{{ hatci_source_build_level }}"
+    remark: "{{ hatci_source_remark | default(omit) }}"
+    ecus: "{{ hatci_source_ecus }}"
+  register: source_event_result
+
+- name: Create UROM (target) event
+  hatci.automation.hatci_create_event:
+    hatci_base_url: "{{ hatci_base_url }}"
+    hatci_token: "{{ hatci_token }}"
+    verify_tls: "{{ hatci_verify_tls }}"
+    timeout: "{{ hatci_timeout }}"
+    tester_name: "{{ hatci_tester_name }}"
+    program_name: "{{ hatci_program_name }}"
+    model_year: "{{ hatci_model_year }}"
+    vin: "{{ hatci_vin }}"
+    update_type: UROM
+    region: "{{ hatci_region }}"
+    region_spec: "{{ hatci_region_spec | default(omit) }}"
+    build_level: "{{ hatci_target_build_level }}"
+    remark: "{{ hatci_target_remark | default(omit) }}"
+    ecus: "{{ hatci_target_ecus }}"
+  register: target_event_result
+
+- name: Fix RROM event
+  hatci.automation.hatci_fix_event:
+    hatci_base_url: "{{ hatci_base_url }}"
+    hatci_token: "{{ hatci_token }}"
+    verify_tls: "{{ hatci_verify_tls }}"
+    timeout: "{{ hatci_timeout }}"
+    event_id: "{{ source_event_result.event_id }}"
+  register: source_fix_result
+
+- name: Fix UROM event
+  hatci.automation.hatci_fix_event:
+    hatci_base_url: "{{ hatci_base_url }}"
+    hatci_token: "{{ hatci_token }}"
+    verify_tls: "{{ hatci_verify_tls }}"
+    timeout: "{{ hatci_timeout }}"
+    event_id: "{{ target_event_result.event_id }}"
+  register: target_fix_result
+
+- name: Set facts for event IDs
+  ansible.builtin.set_fact:
+    source_event_id: "{{ source_event_result.event_id }}"
+    target_event_id: "{{ target_event_result.event_id }}"
+
+- name: Display created event IDs
+  ansible.builtin.debug:
+    msg:
+      - "Created and fixed RROM event: {{ source_event_id }}"
+      - "Created and fixed UROM event: {{ target_event_id }}"

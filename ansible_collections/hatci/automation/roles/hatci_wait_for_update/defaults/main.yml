@@ -1,0 +1,26 @@
+---
+# Defaults for hatci_wait_for_update role
+
+# HATCI API configuration
+hatci_base_url: "{{ lookup('ansible.builtin.env', 'HATCI_BASE_URL', default='') }}"
+hatci_token: "{{ lookup('ansible.builtin.env', 'HATCI_TOKEN', default='') }}"
+hatci_verify_tls: true
+hatci_timeout: 30
+
+# Polling configuration
+hatci_poll_timeout_seconds: 3600
+hatci_poll_interval_seconds: 30
+
+# Event or deployment to monitor
+hatci_event_id: null
+hatci_deployment_id: null
+
+# Final states that indicate completion
+hatci_success_states:
+  - COMPLETE
+  - COMPLETED
+  - SUCCESS
+hatci_failure_states:
+  - FAILED
+  - ERROR
+  - CANCELLED

@@ -1,0 +1,33 @@
+---
+- name: Test jumpstarter_wait module using a generic check_cmd
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  collections:
+    - jumpstarter.jumpstarter
+
+  tasks:
+    - name: Ensure marker does not exist
+      ansible.builtin.file:
+        path: /tmp/device_ready
+        state: absent
+
+    - name: Create marker after 5 seconds (simulates device becoming ready)
+      ansible.builtin.shell: |
+        ( sleep 5 && echo ready > /tmp/device_ready ) &
+      changed_when: false
+
+    - name: Wait until marker exists
+      jumpstarter.jumpstarter.jumpstarter_wait:
+        check_cmd: ["bash", "-lc", "test -f /tmp/device_ready"]
+        retries: 10
+        delay: 1
+        backoff: 1.5
+        max_delay: 5
+
+    - name: Show result history
+      ansible.builtin.debug:
+        var: out
+      vars:
+        out: "{{ ansible_facts | default({}) }}"
+      changed_when: false

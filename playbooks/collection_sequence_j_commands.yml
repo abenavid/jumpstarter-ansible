@@ -1,0 +1,27 @@
+---
+- name: Sequence of j commands through jmp shell
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - jumpstarter.jumpstarter
+
+  vars:
+    jumpstarter_exporter: test
+
+  tasks:
+    - name: Run a command sequence
+      jumpstarter.jumpstarter.jumpstarter_shell:
+        exporter: "{{ jumpstarter_exporter }}"
+        commands:
+          - "j power off"
+          - "j power on --wait 2"
+          - "j power cycle --wait 1"
+        timeout: 60
+      register: shell_result
+
+    - name: Print raw stdout and stderr
+      ansible.builtin.debug:
+        msg:
+          - "rc={{ shell_result.rc }}"
+          - "stdout={{ shell_result.stdout }}"
+          - "stderr={{ shell_result.stderr }}"

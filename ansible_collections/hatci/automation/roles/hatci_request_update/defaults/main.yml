@@ -1,0 +1,28 @@
+---
+# Defaults for hatci_request_update role
+
+# HATCI API configuration
+hatci_base_url: "{{ lookup('ansible.builtin.env', 'HATCI_BASE_URL', default='') }}"
+hatci_token: "{{ lookup('ansible.builtin.env', 'HATCI_TOKEN', default='') }}"
+hatci_verify_tls: true
+hatci_timeout: 30
+
+# Vehicle information
+hatci_vin: null
+hatci_tester_name: null
+hatci_program_name: null
+hatci_model_year: null
+
+# Region information
+hatci_region: null
+hatci_region_spec: null
+
+# Version information
+hatci_source_build_level: null
+hatci_target_build_level: null
+hatci_source_ecus: []
+hatci_target_ecus: []
+
+# Optional remarks
+hatci_source_remark: null
+hatci_target_remark: null

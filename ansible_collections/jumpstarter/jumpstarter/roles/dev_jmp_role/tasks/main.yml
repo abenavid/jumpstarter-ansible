@@ -1,0 +1,38 @@
+---
+# Jumpstarter test harness
+# Installs a fake `jmp` binary into a temp directory and returns:
+# - jumpstarter_test_bin_dir
+# - jumpstarter_test_jmp_path
+# - jumpstarter_test_path_env
+# - jumpstarter_test_client_config_path (optional)
+
+- name: Ensure temp bin dir exists
+  ansible.builtin.file:
+    path: "{{ jumpstarter_test_bin_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Install fake jmp into temp bin dir
+  ansible.builtin.copy:
+    dest: "{{ jumpstarter_test_bin_dir }}/jmp"
+    mode: "0755"
+    content: "{{ jumpstarter_test_fake_jmp_content }}"
+
+- name: Optionally ensure /etc/jumpstarter exists
+  ansible.builtin.file:
+    path: "{{ jumpstarter_test_client_config_dir }}"
+    state: directory
+    mode: "0755"
+  when: jumpstarter_test_write_client_config | bool
+
+- name: Optionally write a dummy client config
+  ansible.builtin.copy:
+    dest: "{{ jumpstarter_test_client_config_path }}"
+    mode: "0644"
+    content: "{{ jumpstarter_test_client_config_content }}"
+  when: jumpstarter_test_write_client_config | bool
+
+- name: Set facts for tests
+  ansible.builtin.set_fact:
+    jumpstarter_test_jmp_path: "{{ jumpstarter_test_bin_dir }}/jmp"
+    jumpstarter_test_path_env: "{{ jumpstarter_test_bin_dir }}:{{ jumpstarter_test_default_path }}"

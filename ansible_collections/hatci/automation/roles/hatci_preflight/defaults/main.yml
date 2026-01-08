@@ -1,0 +1,11 @@
+---
+# Defaults for hatci_preflight role
+
+# HATCI API configuration
+hatci_base_url: "{{ lookup('ansible.builtin.env', 'HATCI_BASE_URL', default='') }}"
+hatci_token: "{{ lookup('ansible.builtin.env', 'HATCI_TOKEN', default='') }}"
+hatci_verify_tls: true
+hatci_timeout: 30
+
+# Vehicle metadata
+hatci_vin: null

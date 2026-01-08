@@ -1,0 +1,29 @@
+# Example Jumpstarter exporter configuration template
+# This file should be customized for your specific vehicle/test setup
+
+name: {{ jumpstarter_exporter_name | default(inventory_hostname) }}
+
+# Device configuration
+device:
+  address: {{ device_address | default('192.168.1.100') }}
+  {% if serial_url is defined and serial_url != '' %}
+  serial_url: {{ serial_url }}
+  {% endif %}
+
+# Power control configuration
+power:
+  control: {{ power_control | default('ipmi') }}
+  {% if power_address is defined %}
+  address: {{ power_address }}
+  {% endif %}
+  {% if power_username is defined %}
+  username: {{ power_username }}
+  {% endif %}
+  {% if power_password is defined %}
+  password: {{ power_password }}
+  {% endif %}
+
+# Additional exporter-specific settings
+{% if exporter_extra_vars is defined %}
+{{ exporter_extra_vars | to_nice_yaml | indent(0, first=True) }}
+{% endif %}

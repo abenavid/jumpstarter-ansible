@@ -1,0 +1,18 @@
+---
+# Defaults for hatci_report_results role
+
+# HATCI API configuration
+hatci_base_url: "{{ lookup('ansible.builtin.env', 'HATCI_BASE_URL', default='') }}"
+hatci_token: "{{ lookup('ansible.builtin.env', 'HATCI_TOKEN', default='') }}"
+hatci_verify_tls: true
+hatci_timeout: 30
+
+# Test event information
+hatci_test_event_id: null
+
+# Test results
+hatci_test_status: "PASS"  # or "FAIL"
+hatci_test_summary: ""
+
+# Artifact URLs from Ansible job
+hatci_artifact_urls: []

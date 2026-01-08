@@ -1,0 +1,26 @@
+---
+- name: Cycle power for a list of exporters
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - jumpstarter.jumpstarter
+
+  vars:
+    exporters:
+      - test
+      - bench01
+      - bench02
+
+  tasks:
+    - name: Cycle power for each exporter
+      jumpstarter.jumpstarter.jumpstarter_power:
+        exporter: "{{ item }}"
+        state: cycle
+        wait: 1
+      loop: "{{ exporters }}"
+      register: power_results
+
+    - name: Summarize results
+      ansible.builtin.debug:
+        msg: "exporter={{ item.item }} rc={{ item.rc }}"
+      loop: "{{ power_results.results }}"

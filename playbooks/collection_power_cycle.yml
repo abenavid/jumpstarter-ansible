@@ -1,0 +1,33 @@
+---
+- name: Power operations
+  hosts: localhost
+  gather_facts: false
+  collections:
+    - jumpstarter.jumpstarter
+
+  vars:
+    jumpstarter_exporter: test
+
+  tasks:
+    - name: Power off
+      jumpstarter.jumpstarter.jumpstarter_power:
+        exporter: "{{ jumpstarter_exporter }}"
+        state: off
+
+    - name: Power on with wait
+      jumpstarter.jumpstarter.jumpstarter_power:
+        exporter: "{{ jumpstarter_exporter }}"
+        state: on
+        wait: 2
+
+    - name: Power cycle with timeout
+      jumpstarter.jumpstarter.jumpstarter_power:
+        exporter: "{{ jumpstarter_exporter }}"
+        state: cycle
+        wait: 1
+        timeout: 30
+      register: power_result
+
+    - name: Show output
+      ansible.builtin.debug:
+        var: power_result

@@ -1,0 +1,59 @@
+---
+- name: Test jumpstarter.collect_diagnostics role with fake jmp harness
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  collections:
+    - jumpstarter.jumpstarter
+
+  tasks:
+    - name: Setup fake jmp test harness
+      ansible.builtin.include_role:
+        name: jumpstarter.jumpstarter.dev_jmp_role
+      vars:
+        jumpstarter_test_write_client_config: false
+
+    - name: Run diagnostics collection
+      ansible.builtin.include_role:
+        name: jumpstarter.jumpstarter.collect_diagnostics
+#      environment:
+#        PATH: "{{ jumpstarter_test_path_env }}"
+      vars:
+        jumpstarter_diagnostics_output_dir: /tmp/jumpstarter_diagnostics_test
+        jumpstarter_diagnostics_create_archive: true
+        jumpstarter_diagnostics_skip_queries_without_client: true
+        jumpstarter_diagnostics_query_exporters: true
+        jumpstarter_diagnostics_query_leases: true
+        jumpstarter_diagnostics_extra_commands:
+          - "echo DIAG_OK"
+          - "ls -la /etc | sed -n '1,25p'"
+
+    - name: Show role result
+      ansible.builtin.debug:
+        var: jumpstarter_diagnostics_result
+
+    - name: Assert run directory created
+      ansible.builtin.stat:
+        path: "{{ jumpstarter_diagnostics_result.run_dir }}"
+      register: st_run
+
+    - name: Assert archive created
+      ansible.builtin.stat:
+        path: "{{ jumpstarter_diagnostics_result.archive_path }}"
+      register: st_arc
+
+    - name: Assertions
+      ansible.builtin.assert:
+        that:
+          - st_run.stat.exists | bool
+          - st_arc.stat.exists | bool
+
+    - name: Verify summary exists
+      ansible.builtin.stat:
+        path: "{{ jumpstarter_diagnostics_result.run_dir }}/summary.json"
+      register: st_summary
+
+    - name: Assert summary exists
+      ansible.builtin.assert:
+        that:
+          - st_summary.stat.exists | bool

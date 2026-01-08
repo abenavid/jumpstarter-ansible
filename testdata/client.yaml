@@ -1,0 +1,26 @@
+apiVersion: jumpstarter.dev/v1alpha1
+kind: ClientConfig
+
+metadata:
+  name: test
+  namespace: default
+
+endpoint: ""
+token: ""
+
+drivers:
+  allow:
+    - power
+    - storage
+    - serial
+
+  power:
+    type: jumpstarter_driver_power.driver.MockPower
+
+  storage:
+    type: jumpstarter_driver_opendal.driver.MockStorageMux
+
+  serial:
+    type: jumpstarter_driver_pyserial.driver.PySerial
+    config:
+      url: "loop://"

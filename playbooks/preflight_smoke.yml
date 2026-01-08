@@ -1,0 +1,16 @@
+---
+- name: Preflight smoke test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Preflight without exporter query
+      jumpstarter.jumpstarter.jumpstarter_preflight:
+        skip_exporter_query: true
+        check_config_dirs: false
+      register: out
+
+    - name: Show results
+      ansible.builtin.debug:
+        var: out

@@ -1,0 +1,87 @@
+---
+# Tasks for hatci_wait_for_update role
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - hatci_base_url is defined and hatci_base_url != ""
+      - hatci_token is defined and hatci_token != ""
+      - hatci_event_id is defined or hatci_deployment_id is defined
+    fail_msg: "Either hatci_event_id or hatci_deployment_id must be provided"
+    quiet: true
+
+- name: Set polling variables
+  ansible.builtin.set_fact:
+    poll_start_time: "{{ ansible_date_time.epoch | int }}"
+    poll_end_time: "{{ (ansible_date_time.epoch | int) + hatci_poll_timeout_seconds }}"
+    poll_current_state: "PENDING"
+
+- name: Poll for update status
+  block:
+    - name: Get current status
+      hatci.automation.hatci_update_status:
+        hatci_base_url: "{{ hatci_base_url }}"
+        hatci_token: "{{ hatci_token }}"
+        verify_tls: "{{ hatci_verify_tls }}"
+        timeout: "{{ hatci_timeout }}"
+        event_id: "{{ hatci_event_id | default(omit) }}"
+        deployment_id: "{{ hatci_deployment_id | default(omit) }}"
+      register: status_result
+      until: >
+        status_result.state in (hatci_success_states + hatci_failure_states) or
+        (ansible_date_time.epoch | int) >= poll_end_time
+      retries: "{{ (hatci_poll_timeout_seconds / hatci_poll_interval_seconds) | int }}"
+      delay: "{{ hatci_poll_interval_seconds }}"
+      failed_when: false
+
+    - name: Update current state fact
+      ansible.builtin.set_fact:
+        poll_current_state: "{{ status_result.state }}"
+        poll_current_reason: "{{ status_result.reason | default('') }}"
+
+    - name: Check if timeout was reached
+      ansible.builtin.assert:
+        that:
+          - status_result.state in (hatci_success_states + hatci_failure_states)
+        fail_msg: >
+          Update did not complete within {{ hatci_poll_timeout_seconds }} seconds.
+          Last state: {{ status_result.state }}
+        quiet: true
+
+    - name: Check if update failed
+      ansible.builtin.assert:
+        that:
+          - status_result.state not in hatci_failure_states
+        fail_msg: >
+          Update failed with state: {{ status_result.state }}.
+          Reason: {{ status_result.reason | default('Unknown') }}
+        quiet: true
+
+    - name: Verify update completed successfully
+      ansible.builtin.assert:
+        that:
+          - status_result.state in hatci_success_states
+        fail_msg: "Update completed but state was not in success states: {{ status_result.state }}"
+        quiet: true
+        success_msg: "Update completed successfully with state: {{ status_result.state }}"
+
+  rescue:
+    - name: Handle polling failure
+      ansible.builtin.fail:
+        msg: >
+          Failed to wait for update completion.
+          Last state: {{ poll_current_state | default('UNKNOWN') }}
+          Reason: {{ poll_current_reason | default('Unknown') }}
+
+- name: Set final status facts
+  ansible.builtin.set_fact:
+    hatci_final_state: "{{ status_result.state }}"
+    hatci_final_reason: "{{ status_result.reason | default('') }}"
+    hatci_final_timestamps: "{{ status_result.timestamps | default({}) }}"
+
+- name: Display final status
+  ansible.builtin.debug:
+    msg:
+      - "Update completed with state: {{ hatci_final_state }}"
+      - "Reason: {{ hatci_final_reason }}"
+      - "Timestamps: {{ hatci_final_timestamps }}"

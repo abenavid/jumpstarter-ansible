@@ -1,0 +1,36 @@
+---
+version: 3
+
+images:
+  base_image:
+    name: registry.redhat.io/ansible-automation-platform-25/ee-minimal-rhel9:latest
+
+options:
+  package_manager_path: /usr/bin/microdnf
+
+dependencies:
+  system:
+    - git
+  python:
+    - requests
+    - jmespath
+  galaxy:
+    collections:
+      - community.general
+      - ansible.utils
+      - containers.podman
+      - infra.ee_utilities
+      - servicenow.itsm
+      - ansible.windows
+
+# Stage the exporters directory into _build/
+additional_build_files:
+  - src: exporters
+    dest: exporters
+
+additional_build_steps:
+  append_final:
+    - RUN python3 -m pip install --no-cache-dir --extra-index-url https://pkg.jumpstarter.dev/simple \
+        jumpstarter-cli jumpstarter-driver-opendal jumpstarter-driver-power jumpstarter-driver-pyserial jumpstarter-driver-composite
+    - COPY _build/exporters /etc/jumpstarter/exporters
+

@@ -1,0 +1,69 @@
+---
+# Tasks for hatci_preflight role
+
+- name: Validate HATCI base URL is provided
+  ansible.builtin.assert:
+    that:
+      - hatci_base_url is defined
+      - hatci_base_url != ""
+    fail_msg: "hatci_base_url must be provided (via vars or HATCI_BASE_URL env var)"
+    quiet: true
+
+- name: Validate HATCI token is provided
+  ansible.builtin.assert:
+    that:
+      - hatci_token is defined
+      - hatci_token != ""
+    fail_msg: "hatci_token must be provided (via vars or HATCI_TOKEN env var)"
+    quiet: true
+
+- name: Test HATCI API connectivity
+  block:
+    - name: Attempt to reach HATCI API
+      ansible.builtin.uri:
+        url: "{{ hatci_base_url }}/api/v1/health"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ hatci_token }}"
+        validate_certs: "{{ hatci_verify_tls }}"
+        timeout: "{{ hatci_timeout }}"
+        status_code: [200, 401, 403, 404]
+      register: connectivity_test
+      failed_when: false
+      changed_when: false
+
+    - name: Check API connectivity result
+      ansible.builtin.assert:
+        that:
+          - connectivity_test.status is defined
+          - connectivity_test.status in [200, 401, 403, 404]
+        fail_msg: "HATCI API is not reachable. Check base_url and network connectivity."
+        quiet: true
+        success_msg: "HATCI API connectivity verified (status: {{ connectivity_test.status }})"
+
+  rescue:
+    - name: Fallback connectivity check
+      ansible.builtin.assert:
+        that:
+          - connectivity_test.msg is defined
+          - "Network error" not in connectivity_test.msg | default("")
+        fail_msg: "HATCI API is not reachable. Check base_url and network connectivity."
+        quiet: true
+
+- name: Load vehicle metadata if VIN provided
+  block:
+    - name: Get vehicle information
+      ansible.builtin.debug:
+        msg: "Vehicle VIN: {{ hatci_vin }}"
+      when: hatci_vin is defined and hatci_vin != ""
+
+    - name: Set fact for vehicle metadata loaded
+      ansible.builtin.set_fact:
+        hatci_vehicle_metadata_loaded: true
+      when: hatci_vin is defined and hatci_vin != ""
+
+  when: hatci_vin is defined and hatci_vin != ""
+
+- name: Preflight checks complete
+  ansible.builtin.debug:
+    msg: "HATCI preflight checks passed"

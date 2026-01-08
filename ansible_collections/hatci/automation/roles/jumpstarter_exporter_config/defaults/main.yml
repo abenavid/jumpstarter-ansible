@@ -1,0 +1,15 @@
+---
+# Defaults for jumpstarter_exporter_config role
+
+# Name of the exporter config file (without .yaml extension)
+jumpstarter_exporter_name: "{{ inventory_hostname }}"
+
+# Path to Jinja2 template for the exporter config
+# This should be provided via host vars or extra vars
+jumpstarter_exporter_template: null
+
+# Directory where exporter configs are written inside the EE
+jumpstarter_exporters_dir: "/etc/jumpstarter/exporters.d"
+
+# Whether to clean up the exporter config after the playbook completes
+jumpstarter_exporter_cleanup: false

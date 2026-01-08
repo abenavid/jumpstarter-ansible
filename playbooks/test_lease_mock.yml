@@ -1,0 +1,56 @@
+---
+- name: Test jumpstarter_lease module with a reusable fake jmp harness
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  collections:
+    - jumpstarter.jumpstarter
+
+  tasks:
+    - name: Setup fake jmp test harness
+      ansible.builtin.include_role:
+        name: jumpstarter.jumpstarter.dev_jmp_role
+      vars:
+        jumpstarter_test_write_client_config: false
+
+    - name: Sanity check fake jmp is first on PATH
+      ansible.builtin.command: bash -lc "command -v jmp && jmp version"
+      environment:
+        PATH: "{{ jumpstarter_test_path_env }}"
+      register: sanity
+      changed_when: false
+
+    - name: Show sanity output
+      ansible.builtin.debug:
+        var: sanity.stdout_lines
+
+    - name: Acquire lease
+      jumpstarter.jumpstarter.jumpstarter_lease:
+        state: acquire
+        selector: "exporter=test"
+        duration: "30m"
+        output: name
+        client_config: "/private/etc/jumpstarter/client.yaml"
+      environment:
+        PATH: "{{ jumpstarter_test_path_env }}"
+      register: lease_out
+
+    - name: Assert lease acquired
+      ansible.builtin.assert:
+        that:
+          - lease_out.lease_name is defined
+          - lease_out.lease_name == "lease/test-123"
+
+    - name: Release lease
+      jumpstarter.jumpstarter.jumpstarter_lease:
+        state: release
+        lease_name: "{{ lease_out.lease_name }}"
+        client_config: "/private/etc/jumpstarter/client.yaml"
+      environment:
+        PATH: "{{ jumpstarter_test_path_env }}"
+      register: release_out
+
+    - name: Assert lease released
+      ansible.builtin.assert:
+        that:
+          - release_out.changed | bool

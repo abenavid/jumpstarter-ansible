@@ -1,0 +1,26 @@
+---
+ansible-navigator:
+  mode: stdout
+  playbook-artifact:
+    enable: false
+
+  execution-environment:
+    enabled: true
+    container-engine: podman
+    image: localhost/jumpstarter-ee:v1
+    pull:
+      policy: never
+
+    volume-mounts:
+      - src: "./ansible_collections"
+        dest: "/usr/share/ansible/collections/ansible_collections"
+        options: "rw"
+
+      - src: "./testdata/client.yaml"
+        dest: "/etc/jumpstarter/client.yaml"
+        options: "ro"
+
+  ansible:
+    inventory:
+      entries:
+        - "localhost,"
