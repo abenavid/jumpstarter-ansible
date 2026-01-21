@@ -86,7 +86,7 @@ options:
     required: false
 
 author:
-  - Jumpstarter Contributors
+  - Alex Benavides <abenavid@redhat.com>
 
 notes:
   - This module shells out to C(jmp). Ensure the CLI is installed in the execution environment.

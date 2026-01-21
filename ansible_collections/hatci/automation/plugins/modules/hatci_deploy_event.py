@@ -59,7 +59,7 @@ options:
     default: 1
 
 author:
-  - HATCI Contributors
+  - Alex Benavides <abenavid@redhat.com>
 """
 
 RETURN = r"""

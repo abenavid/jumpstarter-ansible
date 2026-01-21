@@ -43,7 +43,7 @@ options:
     required: true
 
 author:
-  - HATCI Contributors
+  - Alex Benavides <abenavid@redhat.com>
 """
 
 RETURN = r"""

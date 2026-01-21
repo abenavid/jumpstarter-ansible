@@ -48,7 +48,7 @@ options:
     required: false
 
 author:
-  - HATCI Contributors
+  - Alex Benavides <abenavid@redhat.com>
 
 notes:
   - Either deployment_id or event_id must be provided, but not both.

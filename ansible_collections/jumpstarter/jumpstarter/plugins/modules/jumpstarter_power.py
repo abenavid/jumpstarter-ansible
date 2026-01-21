@@ -49,7 +49,7 @@ options:
     type: bool
     default: true
 author:
-  - Jumpstarter Contributors
+  - Alex Benavides <abenavid@redhat.com>
 """
 
 EXAMPLES = r"""

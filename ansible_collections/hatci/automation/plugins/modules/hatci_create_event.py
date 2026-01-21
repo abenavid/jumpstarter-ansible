@@ -108,7 +108,7 @@ options:
         required: true
 
 author:
-  - HATCI Contributors
+  - Alex Benavides <abenavid@redhat.com>
 
 notes:
   - This module requires network access to the HATCI API.

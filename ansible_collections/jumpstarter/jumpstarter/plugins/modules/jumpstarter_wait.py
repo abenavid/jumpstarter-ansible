@@ -30,7 +30,7 @@ description:
   - Can run either a generic command (for easy testing) or a Jumpstarter shell command via C(jmp shell).
 version_added: "0.1.0"
 author:
-  - Jumpstarter Contributors
+  - Alex Benavides <abenavid@redhat.com>
 options:
   exporter:
     description:

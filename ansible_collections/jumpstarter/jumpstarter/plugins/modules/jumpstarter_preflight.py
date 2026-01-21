@@ -17,7 +17,7 @@ description:
   - Designed to run early in a play as a safety gate before any device operations.
 version_added: "0.1.0"
 author:
-  - Jumpstarter Contributors
+  - Alex Benavides <abenavid@redhat.com>
 options:
   exporter:
     description:
