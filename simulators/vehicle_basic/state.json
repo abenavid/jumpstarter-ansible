@@ -1,0 +1,9 @@
+{
+    "boot_status": "running",
+    "error": null,
+    "health": "ok",
+    "last_command": "demo_select_simulator",
+    "network": "disconnected",
+    "ota_status": "idle",
+    "power": "on"
+}

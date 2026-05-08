@@ -1,0 +1,14 @@
+---
+name: infotainment_screen_failure
+description: Head unit where the display stack fails intermittently (backlight, compositor, or panel I2C).
+supports:
+  - power
+  - serial
+  - screen
+  - ota
+boot_time_seconds: 32
+failure_rate: 0.28
+default_exporter: sim-infotainment-screen-exporter
+notes: >
+  screen.* fields mirror real HMI probes. failure_rate models panel init timeouts and
+  sporadic DRM master failures during soak tests.

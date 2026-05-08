@@ -1,0 +1,47 @@
+---
+all:
+  vars:
+    ansible_connection: local
+  children:
+    simulated_devices:
+      hosts:
+        sim_vehicle_001:
+          simulator_name: vehicle_basic
+          jumpstarter_exporter_name: sim-vehicle-exporter
+          device_id: sim-vehicle-001
+          device_type: smart_vehicle
+        sim_infotainment_001:
+          simulator_name: infotainment_lab
+          jumpstarter_exporter_name: sim-infotainment-exporter
+          device_id: sim-infotainment-001
+          device_type: infotainment_head_unit
+        sim_gateway_001:
+          simulator_name: edge_gateway
+          jumpstarter_exporter_name: sim-gateway-exporter
+          device_id: sim-gateway-001
+          device_type: edge_gateway
+        sim_vehicle_unstable_ota:
+          simulator_name: vehicle_unstable_ota
+          jumpstarter_exporter_name: sim-vehicle-ota-exporter
+          device_id: sim-vehicle-ota-002
+          device_type: smart_vehicle
+        sim_vehicle_low_battery:
+          simulator_name: vehicle_low_battery
+          jumpstarter_exporter_name: sim-vehicle-battery-exporter
+          device_id: sim-vehicle-batt-003
+          device_type: smart_vehicle
+        sim_infotainment_screen_failure:
+          simulator_name: infotainment_screen_failure
+          jumpstarter_exporter_name: sim-infotainment-screen-exporter
+          device_id: sim-infotainment-screen-004
+          device_type: infotainment_head_unit
+        sim_gateway_network_flaky:
+          simulator_name: gateway_network_flaky
+          jumpstarter_exporter_name: sim-gateway-flaky-exporter
+          device_id: sim-gateway-flaky-005
+          device_type: edge_gateway
+        sim_sensor_hub_degraded:
+          simulator_name: sensor_hub_degraded
+          jumpstarter_exporter_name: sim-sensor-hub-exporter
+          device_id: sim-sensor-hub-006
+          device_type: sensor_hub

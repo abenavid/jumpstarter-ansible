@@ -1,0 +1,9 @@
+[00:00:00.000] IVI: PMIC_STBY -> RUN, rail sequencing OK
+[00:00:00.120] IVI: U-Boot 2024.01-dirty (May 01 2026 - 12:00:00 +0000)
+[00:00:00.340] IVI: DRAM: 8 GiB @ 4266 MT/s
+[00:00:00.510] IVI: Loading kernel from mmc0 ...
+[00:00:01.900] IVI: Linux version 6.6.0-demo-ivi #1 SMP PREEMPT
+[00:00:02.400] IVI: systemd[1]: Starting Demo IVI target...
+[00:00:04.100] IVI: compositor: wayland socket ready
+[00:00:05.800] IVI: ui-shell: HomeSurface initialized (1920x720)
+[00:00:06.200] IVI: ota-client: idle, manifest channel=lab-stable

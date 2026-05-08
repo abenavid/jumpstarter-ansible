@@ -1,0 +1,13 @@
+---
+name: vehicle_basic
+description: Generic smart vehicle simulator (power, serial, OTA) for demos without hardware.
+supports:
+  - power
+  - serial
+  - ota
+boot_time_seconds: 12
+failure_rate: 0.0
+default_exporter: sim-vehicle-exporter
+notes: >
+  Starts powered off with software_version 1.0.0. Use playbooks to flip power and OTA fields
+  the same way you would against a real exporter-backed twin.

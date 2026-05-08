@@ -1,0 +1,26 @@
+{
+    "device_id": "sim-infotainment-001",
+    "device_type": "infotainment_head_unit",
+    "exporter": "sim-infotainment-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-07T22:57:57Z",
+    "lease_owner": "",
+    "metadata": {
+        "audio_zones": 2,
+        "capabilities": [
+            "power",
+            "serial",
+            "screen",
+            "ota"
+        ],
+        "display": "1920x720",
+        "notes": "Head-unit style twin for HMI and OTA workflow demos.",
+        "touch": true,
+        "ui_stack": "demo-qt-wayland"
+    },
+    "power_state": "on",
+    "simulator_name": "infotainment_lab",
+    "software_version": "1.0.0",
+    "status": "idle",
+    "target_version": "1.1.0"
+}

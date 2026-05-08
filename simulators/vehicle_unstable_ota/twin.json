@@ -1,0 +1,25 @@
+{
+    "device_id": "sim-vehicle-ota-002",
+    "device_type": "smart_vehicle",
+    "exporter": "sim-vehicle-ota-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-07T22:57:57Z",
+    "lease_owner": "qa-ota-sprint",
+    "metadata": {
+        "capabilities": [
+            "power",
+            "serial",
+            "ota"
+        ],
+        "modem_fw": "20.203.5.1",
+        "notes": "Unstable OTA twin: manifest fetch OK, image apply intermittently fails with SHA256 mismatch.",
+        "platform": "demo-ev-skateboard",
+        "region": "lab-us-east",
+        "vin": "DEMO2VH9876543210"
+    },
+    "power_state": "on",
+    "simulator_name": "vehicle_unstable_ota",
+    "software_version": "2.3.1",
+    "status": "idle",
+    "target_version": "2.4.0"
+}

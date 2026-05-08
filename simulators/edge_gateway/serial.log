@@ -1,0 +1,10 @@
+[    0.000000] Linux version 6.1.0-demo-gateway (builder@lab) (gcc version 12.2.0) #1 SMP
+[    0.048000] Machine model: Demo Edge Gateway (DT)
+[    0.120000] printk: bootconsole [uart0] enabled
+[    0.240000] memblock: reserved 128MiB for crashkernel
+[    0.900000] mmc0: new HS200 MMC card at address 0001
+[    1.100000] EXT4-fs (mmcblk0p2): mounted filesystem with writeback data mode
+[    1.400000] systemd[1]: systemd 252 running in system mode (+PAM +AUDIT)
+[    2.100000] systemd[1]: Reached target Network.
+[    3.200000] systemd[1]: Started Demo edge telemetry agent.
+[    4.000000] demo-gw: WAN link down, awaiting provisioning

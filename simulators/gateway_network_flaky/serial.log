@@ -1,0 +1,6 @@
+[    2.800000] demo-gw: eth0: carrier up, 1000 Mbps full
+[    3.100000] demo-gw: wan0: DHCP bound 198.51.100.44/24 gw 198.51.100.1
+[    4.200000] demo-gw: vpn: initiating IKE_SA_INIT to vpn.lab.example (attempt 2/5)
+[    4.900000] demo-gw: vpn: WARN child SA rekey slow, RTT p95=480ms loss=6.8%
+[    5.400000] demo-gw: telemetry: WARN publish backlog 128 frames (WAN impairment active)
+[    6.000000] demo-gw: watchdog: path probe FAIL icmp_seq=991 timeout (sink 203.0.113.10)

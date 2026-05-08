@@ -1,0 +1,24 @@
+{
+    "device_id": "sim-vehicle-001",
+    "device_type": "smart_vehicle",
+    "exporter": "sim-vehicle-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-07T22:57:57Z",
+    "lease_owner": "",
+    "metadata": {
+        "capabilities": [
+            "power",
+            "serial",
+            "ota"
+        ],
+        "notes": "File-backed twin for Ansible demos; swap paths for a real Jumpstarter twin JSON when hardware is available.",
+        "platform": "demo-ev-skateboard",
+        "region": "lab-us-east",
+        "vin": "DEMO1VH1234567890"
+    },
+    "power_state": "on",
+    "simulator_name": "vehicle_basic",
+    "software_version": "1.0.0",
+    "status": "idle",
+    "target_version": "1.0.0"
+}

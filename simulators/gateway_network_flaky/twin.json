@@ -1,0 +1,26 @@
+{
+    "device_id": "sim-gateway-flaky-005",
+    "device_type": "edge_gateway",
+    "exporter": "sim-gateway-flaky-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-07T22:57:57Z",
+    "lease_owner": "edge-net-lab",
+    "metadata": {
+        "capabilities": [
+            "power",
+            "serial",
+            "network",
+            "health_check"
+        ],
+        "cellular": true,
+        "cpu": "4c ARM64",
+        "hostname": "demo-gateway-flaky-01",
+        "notes": "WAN impairment + UDP loss injector enabled toward 203.0.113.10/32 lab sink.",
+        "site": "lab-bench-12"
+    },
+    "power_state": "on",
+    "simulator_name": "gateway_network_flaky",
+    "software_version": "1.1.7",
+    "status": "idle",
+    "target_version": "1.2.0"
+}

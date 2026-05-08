@@ -1,0 +1,3 @@
+[sensor_hub_degraded] fusion: IMU temp comp flag SET (median residual 2.1 deg/s)
+[sensor_hub_degraded] gnss: fix=NONE hdop=4.8 (multipath suspected)
+[sensor_hub_degraded] health: publishing DEGRADED to lab shadow topic

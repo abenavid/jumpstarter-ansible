@@ -1,0 +1,7 @@
+[vehicle_unstable_ota] VCU: power-on self-test OK, HVIL closed
+[vehicle_unstable_ota] ota-agent: manifest v2.4.0 channel=lab-canary, delta=1.2 GiB
+[vehicle_unstable_ota] ota-agent: download 67% LTE RSRP=-108 dBm (marginal)
+[vehicle_unstable_ota] ota-agent: WARN resume after TCP reset, retry 3/5
+[vehicle_unstable_ota] ota-agent: verifying sha256 ... MISMATCH expected=a1b2... got=cafe...
+[vehicle_unstable_ota] ota-agent: rolling back slot B, keeping slot A active
+[vehicle_unstable_ota] VCU: user notification queued (OTA deferred)

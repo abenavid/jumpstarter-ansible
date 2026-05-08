@@ -1,0 +1,25 @@
+{
+    "device_id": "sim-infotainment-screen-004",
+    "device_type": "infotainment_head_unit",
+    "exporter": "sim-infotainment-screen-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-07T22:57:57Z",
+    "lease_owner": "hmi-ci",
+    "metadata": {
+        "capabilities": [
+            "power",
+            "serial",
+            "screen",
+            "ota"
+        ],
+        "display": "1920x720",
+        "notes": "Display path fault injection: Wayland surface present but panel reports NO_ACK on DCS.",
+        "touch": true,
+        "ui_stack": "demo-qt-wayland"
+    },
+    "power_state": "on",
+    "simulator_name": "infotainment_screen_failure",
+    "software_version": "1.2.3",
+    "status": "idle",
+    "target_version": "1.2.5"
+}

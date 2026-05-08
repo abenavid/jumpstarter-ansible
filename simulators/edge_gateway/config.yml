@@ -1,0 +1,14 @@
+---
+name: edge_gateway
+description: Generic IoT / edge gateway with power, serial, network, and health_check signals.
+supports:
+  - power
+  - serial
+  - network
+  - health_check
+boot_time_seconds: 45
+failure_rate: 0.01
+default_exporter: sim-gateway-exporter
+notes: >
+  Serial log mimics a small Linux gateway coming up. Network and health fields live in state.json
+  for playbook-driven edge scenarios.

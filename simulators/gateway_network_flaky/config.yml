@@ -1,0 +1,14 @@
+---
+name: gateway_network_flaky
+description: Edge gateway with intermittent WAN, flaky VPN handshakes, and measurable synthetic packet loss.
+supports:
+  - power
+  - serial
+  - network
+  - health_check
+boot_time_seconds: 62
+failure_rate: 0.75
+default_exporter: sim-gateway-flaky-exporter
+notes: >
+  packet_loss_percent and last_probe reflect lab WAN impairment scripts. VPN flaps are common;
+  use for connectivity watchdog and path failover demos.

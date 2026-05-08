@@ -1,0 +1,18 @@
+{
+    "boot_status": "running",
+    "error": null,
+    "health": "ok",
+    "health_check": {
+        "cpu_load": null,
+        "disk_percent": null,
+        "last_probe": null
+    },
+    "last_command": "demo_select_simulator",
+    "network": {
+        "lan": "down",
+        "vpn": "down",
+        "wan": "down"
+    },
+    "ota_status": "idle",
+    "power": "on"
+}

@@ -1,0 +1,13 @@
+---
+name: vehicle_unstable_ota
+description: Simulated vehicle ECU where OTA downloads frequently abort, retry, and report checksum failures.
+supports:
+  - power
+  - serial
+  - ota
+boot_time_seconds: 90
+failure_rate: 0.35
+default_exporter: sim-vehicle-ota-exporter
+notes: >
+  OTA agent simulates flaky LTE backhaul and bundle verification errors. state.json tracks
+  retry_count and last_failure_reason for playbook-driven recovery drills.

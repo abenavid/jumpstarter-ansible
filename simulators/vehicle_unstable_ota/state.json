@@ -1,0 +1,13 @@
+{
+    "boot_status": "running",
+    "current_version": "2.3.1",
+    "error": null,
+    "health": "ok",
+    "last_command": "demo_select_simulator",
+    "last_failure_reason": "sha256_mismatch on payload partition b",
+    "network": "lte_flaky",
+    "ota_status": "idle",
+    "power": "on",
+    "retry_count": 4,
+    "target_version": "2.4.0"
+}

@@ -1,0 +1,14 @@
+---
+name: infotainment_lab
+description: Simulated infotainment / head unit with power, serial, screen, and OTA signals.
+supports:
+  - power
+  - serial
+  - screen
+  - ota
+boot_time_seconds: 28
+failure_rate: 0.02
+default_exporter: sim-infotainment-exporter
+notes: >
+  Serial log includes stylized boot and UI startup lines. Screen state is carried in state.json
+  for simple playbook-driven demos.

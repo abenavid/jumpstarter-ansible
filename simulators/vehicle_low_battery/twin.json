@@ -1,0 +1,25 @@
+{
+    "device_id": "sim-vehicle-batt-003",
+    "device_type": "smart_vehicle",
+    "exporter": "sim-vehicle-battery-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-07T22:57:57Z",
+    "lease_owner": "",
+    "metadata": {
+        "battery_chemistry": "NMC811",
+        "capabilities": [
+            "power",
+            "serial",
+            "ota"
+        ],
+        "notes": "Low SoC scenario: preconditioning disabled, HVAC curtailed, OTA deferred until >15%.",
+        "platform": "demo-ev-skateboard",
+        "region": "lab-us-west",
+        "vin": "DEMO3VH2468135790"
+    },
+    "power_state": "on",
+    "simulator_name": "vehicle_low_battery",
+    "software_version": "2.2.4",
+    "status": "idle",
+    "target_version": "2.2.4"
+}

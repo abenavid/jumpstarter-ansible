@@ -1,0 +1,13 @@
+---
+name: vehicle_low_battery
+description: Simulated vehicle with low traction battery, limited 12V support, and guarded boot paths.
+supports:
+  - power
+  - serial
+  - ota
+boot_time_seconds: 55
+failure_rate: 0.18
+default_exporter: sim-vehicle-battery-exporter
+notes: >
+  battery_percent and charging_state drive limp-home demos. Boot may stall when SoC drops
+  below BMS thresholds; failure_rate models intermittent PMIC brownouts.

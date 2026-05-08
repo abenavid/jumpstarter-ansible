@@ -1,0 +1,13 @@
+---
+name: sensor_hub_degraded
+description: Compact sensor hub with degraded IMU calibration, intermittent GPS fix, and temperature drift.
+supports:
+  - power
+  - serial
+  - health_check
+boot_time_seconds: 18
+failure_rate: 0.24
+default_exporter: sim-sensor-hub-exporter
+notes: >
+  sensors.* blocks mirror fusion pipeline health. degraded_reason summarizes the fused
+  diagnostic; failure_rate models UART framing errors on the accelerometer bus.

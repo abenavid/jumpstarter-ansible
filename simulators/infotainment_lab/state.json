@@ -1,0 +1,14 @@
+{
+    "boot_status": "running",
+    "error": null,
+    "health": "ok",
+    "last_command": "demo_select_simulator",
+    "network": "wifi_disconnected",
+    "ota_status": "idle",
+    "power": "on",
+    "screen": {
+        "backlight": "off",
+        "brightness_percent": 0,
+        "home_visible": false
+    }
+}

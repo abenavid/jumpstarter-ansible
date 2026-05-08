@@ -1,0 +1,24 @@
+{
+    "device_id": "sim-sensor-hub-006",
+    "device_type": "sensor_hub",
+    "exporter": "sim-sensor-hub-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-07T22:57:57Z",
+    "lease_owner": "",
+    "metadata": {
+        "capabilities": [
+            "power",
+            "serial",
+            "health_check"
+        ],
+        "enclosure": "IP67 puck",
+        "imu": "BMI270",
+        "notes": "GPS multipath in lab rack; IMU temp compensation flagged; fusion quality MEDIUM.",
+        "site": "lab-vibration-table-3"
+    },
+    "power_state": "on",
+    "simulator_name": "sensor_hub_degraded",
+    "software_version": "0.9.8",
+    "status": "idle",
+    "target_version": "1.0.0"
+}

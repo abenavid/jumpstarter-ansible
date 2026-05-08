@@ -1,0 +1,6 @@
+[00:00:00.000] IVI: PMIC_STBY -> RUN
+[00:00:02.100] IVI: drm/kms: connector DSI-1 status=connected
+[00:00:03.400] IVI: panel-bridge: sending DCS_SET_DISPLAY_ON (0x29)
+[00:00:03.950] IVI: panel-bridge: ERR LP-11 timeout, no ACK from DDIC
+[00:00:04.200] IVI: compositor: blanking framebuffer, user-visible splash suppressed
+[00:00:04.500] IVI: hmi-selftest: FAIL step=panel_dcs (retries=2)

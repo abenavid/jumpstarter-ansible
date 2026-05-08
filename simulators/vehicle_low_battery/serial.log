@@ -1,0 +1,5 @@
+[vehicle_low_battery] BMS: pack SoC 9.1%, cell delta 18 mV (within spec)
+[vehicle_low_battery] PMIC: 12V aux rail 11.6V (low), DCDC derate active
+[vehicle_low_battery] VCU: limp-home torque map engaged
+[vehicle_low_battery] VCU: OTA scheduler suspended (SoC < 15%)
+[vehicle_low_battery] CHG: EVSE not present, plug state open

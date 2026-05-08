@@ -1,0 +1,20 @@
+{
+    "boot_status": "running",
+    "error": null,
+    "health": "ok",
+    "health_check": {
+        "cpu_load": 0.71,
+        "disk_percent": 58,
+        "last_probe": "2026-05-06T16:43:40Z"
+    },
+    "last_command": "demo_select_simulator",
+    "last_probe": "2026-05-06T16:43:40Z",
+    "network": {
+        "lan": "up",
+        "vpn": "degraded",
+        "wan": "up"
+    },
+    "ota_status": "idle",
+    "packet_loss_percent": 6.8,
+    "power": "on"
+}

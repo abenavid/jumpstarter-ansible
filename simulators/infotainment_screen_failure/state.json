@@ -1,0 +1,15 @@
+{
+    "boot_status": "running",
+    "error": null,
+    "health": "ok",
+    "last_command": "demo_select_simulator",
+    "network": "wifi_connected",
+    "ota_status": "idle",
+    "power": "on",
+    "screen": {
+        "backlight": "on",
+        "brightness_percent": 40,
+        "error": "MIPI DSI: LP-11 timeout waiting for DCS ACK on cmd 0x29",
+        "home_visible": false
+    }
+}

@@ -1,0 +1,26 @@
+{
+    "device_id": "sim-gateway-001",
+    "device_type": "edge_gateway",
+    "exporter": "sim-gateway-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-07T22:57:57Z",
+    "lease_owner": "",
+    "metadata": {
+        "capabilities": [
+            "power",
+            "serial",
+            "network",
+            "health_check"
+        ],
+        "cellular": false,
+        "cpu": "4c ARM64",
+        "hostname": "demo-gateway-01",
+        "notes": "Gateway-style twin for IoT / edge connectivity demos.",
+        "site": "lab-bench-7"
+    },
+    "power_state": "on",
+    "simulator_name": "edge_gateway",
+    "software_version": "1.0.0",
+    "status": "idle",
+    "target_version": "1.0.0"
+}

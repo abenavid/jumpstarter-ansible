@@ -1,0 +1,11 @@
+{
+    "battery_percent": 9,
+    "boot_status": "running",
+    "charging_state": "not_charging",
+    "error": null,
+    "health": "ok",
+    "last_command": "demo_select_simulator",
+    "network": "disconnected",
+    "ota_status": "idle",
+    "power": "on"
+}

@@ -1,0 +1,15 @@
+{
+    "boot_status": "running",
+    "degraded_reason": "imu_temp_comp_out_of_spec; gps_hdop_high",
+    "error": null,
+    "health": "ok",
+    "last_command": "demo_select_simulator",
+    "network": "disconnected",
+    "ota_status": "idle",
+    "power": "on",
+    "sensors": {
+        "accelerometer": "degraded",
+        "gps": "no_fix",
+        "temperature": "drift"
+    }
+}
