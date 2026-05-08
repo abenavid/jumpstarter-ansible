@@ -8,11 +8,14 @@
 - name: Validate exporter staging (AAP inventory)
   hosts: all
   gather_facts: false
+  
   # Use the execution environment filesystem (/runner/project); still evaluate each
   # inventory host’s vars (e.g. jumpstarter_exporter_name).
   connection: local
   # Role resets jumpstarter_runtime_exporters_dir; serialize to avoid parallel clashes.
   serial: 1
+  collections:
+    - jumpstarter.jumpstarter
   vars:
     jumpstarter_exporter_source: project
     jumpstarter_project_exporters_dir: /runner/project/exporters
