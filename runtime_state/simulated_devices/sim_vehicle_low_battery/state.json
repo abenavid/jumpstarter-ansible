@@ -1,8 +1,5 @@
 {
-    "boot_status": "running",
-    "error": null,
-    "health": "ok",
-    "last_command": "demo_select_simulator",
-    "ota_status": "idle",
-    "power": "on"
+    "error": "jumpstarter client context is not configured; provide client_config or client, or configure a default client in the container",
+    "health": "failed",
+    "last_command": "demo_select_simulator"
 }

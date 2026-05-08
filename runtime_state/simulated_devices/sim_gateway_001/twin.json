@@ -1,11 +1,11 @@
 {
     "exporter": "sim-gateway-exporter",
-    "last_test_result": "pass",
-    "last_updated": "2026-05-08T03:45:09Z",
+    "last_test_result": "fail",
+    "last_updated": "2026-05-08T03:58:07Z",
     "metadata": {
         "inventory_hostname": "sim_gateway_001",
         "simulator_name": "edge_gateway"
     },
-    "power_state": "on",
-    "status": "testing"
+    "power_state": "unknown",
+    "status": "failed"
 }
