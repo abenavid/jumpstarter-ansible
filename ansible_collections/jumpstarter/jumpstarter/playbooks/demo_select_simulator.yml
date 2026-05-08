@@ -183,12 +183,6 @@
               jumpstarter.jumpstarter.jumpstarter_preflight:
                 exporter: "{{ jumpstarter_exporter_name }}"
                 exporters_dir: "{{ jumpstarter_runtime_exporters_dir }}"
-                exporter_config_path: >-
-                  {{
-                    jumpstarter_runtime_exporter_config_path
-                    if jumpstarter_runtime_exporter_config_path | default('') | length > 0
-                    else omit
-                  }}
                 client_config: >-
                   {{
                     jumpstarter_client_config
