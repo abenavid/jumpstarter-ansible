@@ -1,8 +1,9 @@
 ---
-# Validate ExporterConfig YAML for each host in the Job Template’s selected inventory.
-# Inventory is chosen on the AAP Job Template; this playbook does not pull inventory
-# from Git. Exporter YAMLs are read from the automation project checkout (default
-# path below). Each inventory host must define jumpstarter_exporter_name.
+# Validate ExporterConfig YAML for each host in the Job Template’s AAP inventory.
+# Hosts and variables (e.g. jumpstarter_exporter_name) come only from AAP—manual
+# inventory, SCM-sourced inventory, or another AAP project—not from files shipped
+# in this playbook/collection repository. Exporter YAML files are read from the
+# Job Template’s playbook project checkout (default /runner/project/exporters).
 #
 # Collections path: repo-root ansible.cfg (and playbooks/ansible.cfg) add the
 # project tree so jumpstarter.jumpstarter roles resolve in AAP and locally.
