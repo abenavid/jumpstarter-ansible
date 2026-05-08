@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PhysicalOps Device Twin Dashboard</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar__title">
+        <div>
+          <h1>PhysicalOps Device Twin Dashboard</h1>
+          <p class="subtitle">Git backed simulator state from AAP</p>
+        </div>
+      </div>
+      <div class="topbar__actions">
+        <div class="meta">
+          <div class="meta__label">Last loaded</div>
+          <div id="lastLoaded" class="meta__value">—</div>
+        </div>
+        <button id="refreshBtn" class="button button--primary" type="button">
+          Refresh
+        </button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="left">
+        <section class="cards" aria-label="Summary">
+          <div class="card">
+            <div class="card__label">Total devices</div>
+            <div id="cardTotal" class="card__value">—</div>
+          </div>
+          <div class="card">
+            <div class="card__label">Healthy</div>
+            <div id="cardHealthy" class="card__value">—</div>
+          </div>
+          <div class="card">
+            <div class="card__label">Failed or attention</div>
+            <div id="cardAttention" class="card__value">—</div>
+          </div>
+          <div class="card">
+            <div class="card__label">Testing</div>
+            <div id="cardTesting" class="card__value">—</div>
+          </div>
+          <div class="card">
+            <div class="card__label">Powered on</div>
+            <div id="cardPoweredOn" class="card__value">—</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <h2 class="panel__title">Fleet</h2>
+            <div class="panel__hint" id="loadHint">Loading…</div>
+          </div>
+
+          <div class="tableWrap" role="region" aria-label="Fleet table" tabindex="0">
+            <table class="table" aria-describedby="loadHint">
+              <thead>
+                <tr>
+                  <th>Simulator</th>
+                  <th>Device ID</th>
+                  <th>Device Type</th>
+                  <th>Status</th>
+                  <th>Health</th>
+                  <th>Power</th>
+                  <th>OTA Status</th>
+                  <th>Last Test Result</th>
+                  <th>Last Updated</th>
+                </tr>
+              </thead>
+              <tbody id="fleetTbody">
+                <tr>
+                  <td colspan="9" class="muted">Loading…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <aside class="right">
+        <section class="panel panel--sticky">
+          <div class="panel__header">
+            <h2 class="panel__title">Device details</h2>
+            <div class="panel__hint" id="detailHint">
+              Select a device row to view details.
+            </div>
+          </div>
+
+          <div id="detailBody" class="detail">
+            <div class="detail__empty muted">
+              No device selected.
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <div class="muted">
+        Reads <code>runtime_state/simulated_devices/&lt;device&gt;/{twin.json,state.json}</code>
+        from this repo (GitHub Pages).
+      </div>
+    </footer>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
