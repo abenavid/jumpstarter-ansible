@@ -15,22 +15,6 @@
       run_once: true
       delegate_to: localhost
 
-    - name: Verify project path is a Git repository
-      ansible.builtin.stat:
-        path: "{{ simulator_state_repo_path }}/.git"
-      register: _simulator_git_persist_dotgit
-      run_once: true
-      delegate_to: localhost
-
-    - name: Fail when simulator_state_repo_path is not a Git checkout
-      ansible.builtin.fail:
-        msg: >-
-          Expected a Git repo at {{ simulator_state_repo_path }} (missing .git).
-          For local runs, set simulator_state_repo_path to your checkout root; on AAP use /runner/project.
-      when: not (_simulator_git_persist_dotgit.stat.exists | default(false))
-      run_once: true
-      delegate_to: localhost
-
     - name: Build authenticated HTTPS origin URL (credentials from environment)
       ansible.builtin.set_fact:
         simulator_git_origin_url_authenticated: >-
@@ -41,6 +25,54 @@
       delegate_to: localhost
       no_log: true
 
+    - name: Verify project path is a Git repository
+      ansible.builtin.stat:
+        path: "{{ simulator_state_repo_path }}/.git"
+      register: _simulator_git_persist_dotgit
+      run_once: true
+      delegate_to: localhost
+
+    - name: Use project directory as Git working tree when it is a checkout
+      ansible.builtin.set_fact:
+        _simulator_git_working_repo: "{{ simulator_state_repo_path }}"
+      when: _simulator_git_persist_dotgit.stat.exists | default(false)
+      run_once: true
+      delegate_to: localhost
+
+    - name: Clone state repo into workspace when project directory is not a Git checkout
+      when: not (_simulator_git_persist_dotgit.stat.exists | default(false))
+      block:
+        - name: Ensure Git workspace parent directory exists
+          ansible.builtin.file:
+            path: "{{ simulator_state_git_workspace | dirname }}"
+            state: directory
+            mode: "0755"
+          run_once: true
+          delegate_to: localhost
+
+        - name: Clone simulator state repository (needed when AAP omits .git under project path)
+          ansible.builtin.command:
+            argv:
+              - git
+              - clone
+              - --depth
+              - "1"
+              - --branch
+              - "{{ simulator_state_branch }}"
+              - --single-branch
+              - "{{ simulator_git_origin_url_authenticated }}"
+              - "{{ simulator_state_git_workspace }}"
+            creates: "{{ simulator_state_git_workspace }}/.git"
+          run_once: true
+          delegate_to: localhost
+          no_log: true
+
+        - name: Set working Git tree to workspace clone
+          ansible.builtin.set_fact:
+            _simulator_git_working_repo: "{{ simulator_state_git_workspace }}"
+          run_once: true
+          delegate_to: localhost
+
     - name: Configure Git user.name for simulator state commits
       ansible.builtin.command:
         argv:
@@ -48,7 +80,7 @@
           - config
           - user.name
           - "{{ simulator_git_user_name }}"
-        chdir: "{{ simulator_state_repo_path }}"
+        chdir: "{{ _simulator_git_working_repo }}"
       run_once: true
       delegate_to: localhost
       changed_when: true
@@ -60,7 +92,7 @@
           - config
           - user.email
           - "{{ simulator_git_user_email }}"
-        chdir: "{{ simulator_state_repo_path }}"
+        chdir: "{{ _simulator_git_working_repo }}"
       run_once: true
       delegate_to: localhost
       changed_when: true
@@ -75,7 +107,7 @@
               - set-url
               - origin
               - "{{ simulator_git_origin_url_authenticated }}"
-            chdir: "{{ simulator_state_repo_path }}"
+            chdir: "{{ _simulator_git_working_repo }}"
           run_once: true
           delegate_to: localhost
           changed_when: true
@@ -87,7 +119,7 @@
               - git
               - fetch
               - origin
-            chdir: "{{ simulator_state_repo_path }}"
+            chdir: "{{ _simulator_git_working_repo }}"
           run_once: true
           delegate_to: localhost
           changed_when: true
@@ -98,7 +130,7 @@
               - git
               - checkout
               - "{{ simulator_state_branch }}"
-            chdir: "{{ simulator_state_repo_path }}"
+            chdir: "{{ _simulator_git_working_repo }}"
           run_once: true
           delegate_to: localhost
           changed_when: true
@@ -110,28 +142,28 @@
               - pull
               - origin
               - "{{ simulator_state_branch }}"
-            chdir: "{{ simulator_state_repo_path }}"
+            chdir: "{{ _simulator_git_working_repo }}"
           run_once: true
           delegate_to: localhost
           changed_when: true
 
         - name: Ensure per-host simulator state directory exists in project repo
           ansible.builtin.file:
-            path: "{{ simulator_state_repo_path }}/{{ simulator_state_output_dir }}/{{ inventory_hostname }}"
+            path: "{{ _simulator_git_working_repo }}/{{ simulator_state_output_dir }}/{{ inventory_hostname }}"
             state: directory
             mode: "0755"
 
         - name: Publish simulator twin file into project Git state tree
           ansible.builtin.copy:
             src: "{{ simulator_twin_path }}"
-            dest: "{{ simulator_state_repo_path }}/{{ simulator_state_output_dir }}/{{ inventory_hostname }}/{{ simulator_twin_path | basename }}"
+            dest: "{{ _simulator_git_working_repo }}/{{ simulator_state_output_dir }}/{{ inventory_hostname }}/{{ simulator_twin_path | basename }}"
             remote_src: true
             mode: "0644"
 
         - name: Publish simulator state file into project Git state tree
           ansible.builtin.copy:
             src: "{{ simulator_state_path }}"
-            dest: "{{ simulator_state_repo_path }}/{{ simulator_state_output_dir }}/{{ inventory_hostname }}/{{ simulator_state_path | basename }}"
+            dest: "{{ _simulator_git_working_repo }}/{{ simulator_state_output_dir }}/{{ inventory_hostname }}/{{ simulator_state_path | basename }}"
             remote_src: true
             mode: "0644"
 
@@ -152,7 +184,7 @@
               }}
           ansible.builtin.shell: |
             set -e
-            cd "{{ simulator_state_repo_path }}"
+            cd "{{ _simulator_git_working_repo }}"
             git add "{{ simulator_state_git_staged_path }}"
             if git diff --cached --quiet; then
               echo "No simulator state changes to commit."
@@ -176,7 +208,7 @@
               - set-url
               - origin
               - "{{ simulator_git_remote_url }}"
-            chdir: "{{ simulator_state_repo_path }}"
+            chdir: "{{ _simulator_git_working_repo }}"
           run_once: true
           delegate_to: localhost
           changed_when: true

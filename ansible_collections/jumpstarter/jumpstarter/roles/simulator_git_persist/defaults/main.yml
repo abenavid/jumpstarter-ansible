@@ -4,6 +4,8 @@
 simulator_commit_state_to_git: false
 simulator_state_branch: inventory
 simulator_state_repo_path: /runner/project
+# When the project path has no .git (common on AAP), clone simulator_git_remote_url here and commit from this tree.
+simulator_state_git_workspace: /tmp/jumpstarter/simulator_state_repo
 simulator_state_output_dir: runtime_state/simulated_devices
 # Staged for commit (parent of per-host exports); matches docs layout under runtime_state/.
 simulator_state_git_staged_path: runtime_state
