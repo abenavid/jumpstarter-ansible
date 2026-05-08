@@ -1,0 +1,48 @@
+---
+- name: Compute simulator paths
+  ansible.builtin.set_fact:
+    simulator_path: "{{ simulator_root }}/{{ simulator_name }}"
+    simulator_twin_path: "{{ simulator_root }}/{{ simulator_name }}/twin.json"
+    simulator_state_path: "{{ simulator_root }}/{{ simulator_name }}/state.json"
+    simulator_serial_log_path: "{{ simulator_root }}/{{ simulator_name }}/serial.log"
+    simulator_config_path: "{{ simulator_root }}/{{ simulator_name }}/config.yml"
+
+- name: Check simulator directory exists
+  ansible.builtin.stat:
+    path: "{{ simulator_path }}"
+  register: _simulator_select_dir_stat
+
+- name: Fail when simulator directory is missing
+  ansible.builtin.fail:
+    msg: >-
+      Simulator directory not found: {{ simulator_path }}.
+      Expected {{ simulator_name }} under {{ simulator_root }} with twin.json, state.json, and config.yml.
+  when: >-
+    not (
+      _simulator_select_dir_stat.stat.exists | default(false)
+      and _simulator_select_dir_stat.stat.isdir | default(false)
+    )
+
+- name: Load simulator config.yml
+  ansible.builtin.include_vars:
+    file: "{{ simulator_config_path }}"
+    name: simulator_config
+
+- name: Load simulator twin.json
+  ansible.builtin.include_vars:
+    file: "{{ simulator_twin_path }}"
+    name: simulator_twin
+
+- name: Load simulator state.json
+  ansible.builtin.include_vars:
+    file: "{{ simulator_state_path }}"
+    name: simulator_state
+
+- name: Summarize selected simulator
+  ansible.builtin.debug:
+    msg: >-
+      simulator={{ simulator_name }} path={{ simulator_path }}
+      device_id={{ simulator_twin.device_id | default('?') }}
+      type={{ simulator_twin.device_type | default('?') }}
+      twin_status={{ simulator_twin.status | default('?') }} power={{ simulator_twin.power_state | default('?') }}
+      state_power={{ simulator_state.power | default('?') }} boot={{ simulator_state.boot_status | default('?') }}

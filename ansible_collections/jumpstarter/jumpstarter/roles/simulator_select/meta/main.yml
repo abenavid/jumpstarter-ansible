@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: simulator_select
+  namespace: jumpstarter
+  author: Alex Benavides <abenavid@redhat.com>
+  description: >
+    Select a file-backed simulator by name and expose paths and loaded twin/state/config as facts.
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

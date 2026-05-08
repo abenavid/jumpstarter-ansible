@@ -1,0 +1,7 @@
+---
+simulator_name: vehicle_basic
+simulator_root: "{{ playbook_dir }}/../simulators"
+# File-backed demo: roll against config.yml failure_rate (see demo_select_simulator.yml).
+simulator_enable_probabilistic_failures: true
+# Set to a string (e.g. demo1) for repeatable per-host rolls: seed + inventory_hostname.
+simulator_random_seed: null

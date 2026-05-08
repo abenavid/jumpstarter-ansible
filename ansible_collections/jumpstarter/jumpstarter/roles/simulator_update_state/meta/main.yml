@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: simulator_update_state
+  namespace: jumpstarter
+  author: Alex Benavides <abenavid@redhat.com>
+  description: >
+    Merge updates into a simulator state.json and optionally twin.json (including last_updated).
+  license: Apache-2.0
+  min_ansible_version: "2.16"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

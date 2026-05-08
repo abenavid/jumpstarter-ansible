@@ -1,0 +1,7 @@
+---
+simulator_state_updates: {}
+simulator_state_remove_keys: []
+simulator_twin_updates: {}
+simulator_update_twin: true
+simulator_name: vehicle_basic
+simulator_root: "{{ playbook_dir }}/../simulators"
