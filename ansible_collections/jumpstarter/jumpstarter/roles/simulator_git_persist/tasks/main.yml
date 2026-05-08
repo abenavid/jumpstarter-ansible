@@ -1,0 +1,182 @@
+---
+# Persist updated simulator twin.json / state.json into the inventory project repo and push.
+# Requires GIT_USERNAME and GIT_TOKEN in the environment (AAP credential → inject as env).
+- name: Run simulator Git persistence workflow
+  when: simulator_commit_state_to_git | bool
+  block:
+    - name: Require GIT_USERNAME and GIT_TOKEN for simulator Git persistence
+      ansible.builtin.assert:
+        that:
+          - (lookup('env', 'GIT_USERNAME') | default('', true) | trim | length) > 0
+          - (lookup('env', 'GIT_TOKEN') | default('', true) | trim | length) > 0
+        fail_msg: >-
+          simulator_commit_state_to_git is enabled but GIT_USERNAME and/or GIT_TOKEN are missing.
+          Attach an AAP credential that exports these variables to the job environment.
+      run_once: true
+      delegate_to: localhost
+
+    - name: Verify project path is a Git repository
+      ansible.builtin.stat:
+        path: "{{ simulator_state_repo_path }}/.git"
+      register: _simulator_git_persist_dotgit
+      run_once: true
+      delegate_to: localhost
+
+    - name: Fail when simulator_state_repo_path is not a Git checkout
+      ansible.builtin.fail:
+        msg: >-
+          Expected a Git repo at {{ simulator_state_repo_path }} (missing .git).
+          For local runs, set simulator_state_repo_path to your checkout root; on AAP use /runner/project.
+      when: not (_simulator_git_persist_dotgit.stat.exists | default(false))
+      run_once: true
+      delegate_to: localhost
+
+    - name: Build authenticated HTTPS origin URL (credentials from environment)
+      ansible.builtin.set_fact:
+        simulator_git_origin_url_authenticated: >-
+          https://{{ lookup('env', 'GIT_USERNAME') | urlencode }}:{{
+          lookup('env', 'GIT_TOKEN') | urlencode }}@{{
+          simulator_git_remote_url | regex_replace('(?i)^https?://', '') }}
+      run_once: true
+      delegate_to: localhost
+      no_log: true
+
+    - name: Configure Git user.name for simulator state commits
+      ansible.builtin.command:
+        argv:
+          - git
+          - config
+          - user.name
+          - "{{ simulator_git_user_name }}"
+        chdir: "{{ simulator_state_repo_path }}"
+      run_once: true
+      delegate_to: localhost
+      changed_when: true
+
+    - name: Configure Git user.email for simulator state commits
+      ansible.builtin.command:
+        argv:
+          - git
+          - config
+          - user.email
+          - "{{ simulator_git_user_email }}"
+        chdir: "{{ simulator_state_repo_path }}"
+      run_once: true
+      delegate_to: localhost
+      changed_when: true
+
+    - name: Sync repo, publish simulator files, push (restore origin in always)
+      block:
+        - name: Set origin remote URL for authenticated push
+          ansible.builtin.command:
+            argv:
+              - git
+              - remote
+              - set-url
+              - origin
+              - "{{ simulator_git_origin_url_authenticated }}"
+            chdir: "{{ simulator_state_repo_path }}"
+          run_once: true
+          delegate_to: localhost
+          changed_when: true
+          no_log: true
+
+        - name: Fetch from origin
+          ansible.builtin.command:
+            argv:
+              - git
+              - fetch
+              - origin
+            chdir: "{{ simulator_state_repo_path }}"
+          run_once: true
+          delegate_to: localhost
+          changed_when: true
+
+        - name: Checkout simulator state branch
+          ansible.builtin.command:
+            argv:
+              - git
+              - checkout
+              - "{{ simulator_state_branch }}"
+            chdir: "{{ simulator_state_repo_path }}"
+          run_once: true
+          delegate_to: localhost
+          changed_when: true
+
+        - name: Pull latest from origin for state branch
+          ansible.builtin.command:
+            argv:
+              - git
+              - pull
+              - origin
+              - "{{ simulator_state_branch }}"
+            chdir: "{{ simulator_state_repo_path }}"
+          run_once: true
+          delegate_to: localhost
+          changed_when: true
+
+        - name: Ensure per-host simulator state directory exists in project repo
+          ansible.builtin.file:
+            path: "{{ simulator_state_repo_path }}/{{ simulator_state_output_dir }}/{{ inventory_hostname }}"
+            state: directory
+            mode: "0755"
+
+        - name: Publish simulator twin file into project Git state tree
+          ansible.builtin.copy:
+            src: "{{ simulator_twin_path }}"
+            dest: "{{ simulator_state_repo_path }}/{{ simulator_state_output_dir }}/{{ inventory_hostname }}/{{ simulator_twin_path | basename }}"
+            remote_src: true
+            mode: "0644"
+
+        - name: Publish simulator state file into project Git state tree
+          ansible.builtin.copy:
+            src: "{{ simulator_state_path }}"
+            dest: "{{ simulator_state_repo_path }}/{{ simulator_state_output_dir }}/{{ inventory_hostname }}/{{ simulator_state_path | basename }}"
+            remote_src: true
+            mode: "0644"
+
+        - name: Stage, commit, and push simulator state to origin
+          vars:
+            _sim_git_job_id: >-
+              {{
+                (tower_job_id | default('') | string | trim)
+                if (tower_job_id | default('') | string | trim | length) > 0
+                else (
+                  (awx_job_id | default('') | string | trim)
+                  if (awx_job_id | default('') | string | trim | length) > 0
+                  else (
+                    ansible_date_time.iso8601
+                    | default(ansible_date_time.date ~ 'T' ~ ansible_date_time.time)
+                  )
+                )
+              }}
+          ansible.builtin.shell: |
+            set -e
+            cd "{{ simulator_state_repo_path }}"
+            git add "{{ simulator_state_git_staged_path }}"
+            if git diff --cached --quiet; then
+              echo "No simulator state changes to commit."
+              exit 0
+            fi
+            git commit -m {{ ('Update simulator state from AAP job ' ~ (_sim_git_job_id | string)) | quote }}
+            git push origin "{{ simulator_state_branch }}"
+          run_once: true
+          delegate_to: localhost
+          register: _simulator_git_persist_push
+          changed_when: >-
+            'No simulator state changes to commit.' not in (_simulator_git_persist_push.stdout | default(''))
+          no_log: true
+
+      always:
+        - name: Restore origin remote URL without credentials
+          ansible.builtin.command:
+            argv:
+              - git
+              - remote
+              - set-url
+              - origin
+              - "{{ simulator_git_remote_url }}"
+            chdir: "{{ simulator_state_repo_path }}"
+          run_once: true
+          delegate_to: localhost
+          changed_when: true

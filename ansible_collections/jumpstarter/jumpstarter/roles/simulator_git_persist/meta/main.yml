@@ -1,0 +1,4 @@
+---
+galaxy_info:
+  role_name: simulator_git_persist
+dependencies: []

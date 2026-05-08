@@ -1,0 +1,12 @@
+---
+# Optional Git persistence for file-backed simulator twin/state (AAP / Execution Environments).
+# When simulator_commit_state_to_git is false, this role is a no-op.
+simulator_commit_state_to_git: false
+simulator_state_branch: inventory
+simulator_state_repo_path: /runner/project
+simulator_state_output_dir: runtime_state/simulated_devices
+# Staged for commit (parent of per-host exports); matches docs layout under runtime_state/.
+simulator_state_git_staged_path: runtime_state
+simulator_git_remote_url: https://github.com/abenavid/jumpstarter-ansible.git
+simulator_git_user_name: AAP Simulator Bot
+simulator_git_user_email: aap-simulator@example.com

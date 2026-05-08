@@ -5,6 +5,8 @@
 - name: Select simulators and update twin/state files
   hosts: simulated_devices
   gather_facts: true
+  collections:
+    - jumpstarter.jumpstarter
   vars:
     simulator_use_jumpstarter: false
     simulator_enable_probabilistic_failures: true
@@ -30,6 +32,7 @@
     simulator_jumpstarter_run_power: false
     simulator_jumpstarter_power_state: on
     simulator_jumpstarter_power_wait: 0
+    # Optional Git persistence: see roles/simulator_git_persist/defaults/main.yml and docs/simulators.md.
   tasks:
     - name: Select simulator for this host
       ansible.builtin.include_role:
@@ -320,3 +323,8 @@
         msg:
           twin: "{{ simulator_twin_final }}"
           state: "{{ simulator_state_final }}"
+
+    - name: Optionally persist simulator twin/state to Git (inventory branch)
+      when: simulator_commit_state_to_git | default(false) | bool
+      ansible.builtin.include_role:
+        name: jumpstarter.jumpstarter.simulator_git_persist
