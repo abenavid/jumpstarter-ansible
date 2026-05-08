@@ -1,11 +1,11 @@
 {
     "exporter": "sim-vehicle-battery-exporter",
-    "last_test_result": "fail",
-    "last_updated": "2026-05-08T03:32:18Z",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-08T03:45:09Z",
     "metadata": {
         "inventory_hostname": "sim_vehicle_low_battery",
         "simulator_name": "vehicle_low_battery"
     },
-    "power_state": "unknown",
-    "status": "failed"
+    "power_state": "on",
+    "status": "testing"
 }
