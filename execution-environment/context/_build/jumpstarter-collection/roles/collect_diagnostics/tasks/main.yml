@@ -1,0 +1,240 @@
+---
+- name: Ensure output directory exists
+  ansible.builtin.file:
+    path: "{{ jumpstarter_diagnostics_output_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Create run id
+  ansible.builtin.command: bash -lc "date -u +%Y%m%dT%H%M%SZ"
+  register: _js_diag_runid
+  changed_when: false
+
+- name: Set derived paths
+  ansible.builtin.set_fact:
+    jumpstarter_diagnostics_run_id: "{{ _js_diag_runid.stdout | trim }}"
+    jumpstarter_diagnostics_run_dir: "{{ jumpstarter_diagnostics_output_dir.rstrip('/') }}/{{ _js_diag_runid.stdout | trim }}"
+
+- name: Ensure run directory exists
+  ansible.builtin.file:
+    path: "{{ jumpstarter_diagnostics_run_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Detect jmp presence
+  ansible.builtin.command: bash -lc "command -v jmp"
+  register: _js_diag_jmp_path
+  changed_when: false
+  failed_when: false
+
+- name: Set jmp_present fact
+  ansible.builtin.set_fact:
+    jumpstarter_diagnostics_jmp_present: "{{ (_js_diag_jmp_path.rc | int) == 0 }}"
+    jumpstarter_diagnostics_jmp_path: "{{ _js_diag_jmp_path.stdout | trim }}"
+
+- name: Write jmp_path.txt
+  ansible.builtin.copy:
+    dest: "{{ jumpstarter_diagnostics_run_dir }}/jmp_path.txt"
+    mode: "0644"
+    content: |
+      present={{ jumpstarter_diagnostics_jmp_present }}
+      path={{ jumpstarter_diagnostics_jmp_path | default('') }}
+
+- name: Run jmp version
+  ansible.builtin.command: bash -lc "jmp version"
+  register: _js_diag_version
+  changed_when: false
+  failed_when: false
+  when: jumpstarter_diagnostics_jmp_present | bool
+
+- name: Write jmp_version.txt
+  ansible.builtin.copy:
+    dest: "{{ jumpstarter_diagnostics_run_dir }}/jmp_version.txt"
+    mode: "0644"
+    content: |
+      rc={{ _js_diag_version.rc | default('') }}
+      stdout={{ (_js_diag_version.stdout | default('')) | trim }}
+      stderr={{ (_js_diag_version.stderr | default('')) | trim }}
+  when: jumpstarter_diagnostics_jmp_present | bool
+
+- name: Determine whether client context is present
+  ansible.builtin.set_fact:
+    _js_diag_has_client_context: >-
+      {{
+        (jumpstarter_diagnostics_client_config | default('') | length > 0)
+        or
+        (jumpstarter_diagnostics_client | default('') | length > 0)
+      }}
+
+- name: Build common client args
+  ansible.builtin.set_fact:
+    _js_diag_client_args: >-
+      {%- if jumpstarter_diagnostics_client_config | default('') | length > 0 -%}
+      --client-config {{ jumpstarter_diagnostics_client_config }}
+      {%- elif jumpstarter_diagnostics_client | default('') | length > 0 -%}
+      --client {{ jumpstarter_diagnostics_client }}
+      {%- else -%}
+      {%- endif -%}
+
+- name: Decide whether queries should run
+  ansible.builtin.set_fact:
+    _js_diag_run_queries: >-
+      {{
+        (jumpstarter_diagnostics_skip_queries_without_client | bool) | ternary(_js_diag_has_client_context, true)
+      }}
+
+- name: Write context.txt
+  ansible.builtin.copy:
+    dest: "{{ jumpstarter_diagnostics_run_dir }}/context.txt"
+    mode: "0644"
+    content: |
+      run_id={{ jumpstarter_diagnostics_run_id }}
+      output_dir={{ jumpstarter_diagnostics_output_dir }}
+      run_dir={{ jumpstarter_diagnostics_run_dir }}
+      jmp_present={{ jumpstarter_diagnostics_jmp_present }}
+      has_client_context={{ _js_diag_has_client_context }}
+      run_queries={{ _js_diag_run_queries }}
+      client_config={{ jumpstarter_diagnostics_client_config | default('') }}
+      client={{ jumpstarter_diagnostics_client | default('') }}
+
+- name: Capture environment
+  ansible.builtin.command: bash -lc "id && uname -a && python3 --version && ansible --version"
+  register: _js_diag_env
+  changed_when: false
+  failed_when: false
+  when: jumpstarter_diagnostics_capture_env | bool
+
+- name: Write environment.txt
+  ansible.builtin.copy:
+    dest: "{{ jumpstarter_diagnostics_run_dir }}/environment.txt"
+    mode: "0644"
+    content: |
+      rc={{ _js_diag_env.rc | default('') }}
+      stdout:
+      {{ _js_diag_env.stdout | default('') }}
+      stderr:
+      {{ _js_diag_env.stderr | default('') }}
+  when: jumpstarter_diagnostics_capture_env | bool
+
+- name: Query exporters
+  ansible.builtin.command: >-
+    bash -lc
+    {{
+      (
+        'jmp get exporters ' ~ _js_diag_client_args ~ ' -o json'
+      ) | trim
+    }}
+  register: _js_diag_exporters
+  changed_when: false
+  failed_when: false
+  when:
+    - jumpstarter_diagnostics_jmp_present | bool
+    - jumpstarter_diagnostics_query_exporters | bool
+    - _js_diag_run_queries | bool
+
+- name: Write exporters.json
+  ansible.builtin.copy:
+    dest: "{{ jumpstarter_diagnostics_run_dir }}/exporters.json"
+    mode: "0644"
+    content: |
+      {{ _js_diag_exporters.stdout | default('[]') }}
+  when:
+    - jumpstarter_diagnostics_jmp_present | bool
+    - jumpstarter_diagnostics_query_exporters | bool
+    - _js_diag_run_queries | bool
+
+- name: Query leases
+  ansible.builtin.command: >-
+    bash -lc
+    {{
+      (
+        'jmp get leases ' ~ _js_diag_client_args ~ ' -o json'
+      ) | trim
+    }}
+  register: _js_diag_leases
+  changed_when: false
+  failed_when: false
+  when:
+    - jumpstarter_diagnostics_jmp_present | bool
+    - jumpstarter_diagnostics_query_leases | bool
+    - _js_diag_run_queries | bool
+
+- name: Write leases.json
+  ansible.builtin.copy:
+    dest: "{{ jumpstarter_diagnostics_run_dir }}/leases.json"
+    mode: "0644"
+    content: |
+      {{ _js_diag_leases.stdout | default('[]') }}
+  when:
+    - jumpstarter_diagnostics_jmp_present | bool
+    - jumpstarter_diagnostics_query_leases | bool
+    - _js_diag_run_queries | bool
+
+- name: Run extra diagnostic commands
+  ansible.builtin.command: bash -lc "{{ item }}"
+  register: _js_diag_extra
+  changed_when: false
+  failed_when: false
+  loop: "{{ jumpstarter_diagnostics_extra_commands }}"
+
+- name: Write extra_commands.txt
+  ansible.builtin.copy:
+    dest: "{{ jumpstarter_diagnostics_run_dir }}/extra_commands.txt"
+    mode: "0644"
+    content: |
+      {% for r in (_js_diag_extra.results | default([])) %}
+      cmd={{ r.cmd | default('') }}
+      rc={{ r.rc | default('') }}
+      stdout:
+      {{ r.stdout | default('') }}
+      stderr:
+      {{ r.stderr | default('') }}
+      ----
+      {% endfor %}
+  when: (jumpstarter_diagnostics_extra_commands | length) > 0
+
+- name: Write summary.json
+  ansible.builtin.copy:
+    dest: "{{ jumpstarter_diagnostics_run_dir }}/summary.json"
+    mode: "0644"
+    content: |
+      {
+        "run_id": "{{ jumpstarter_diagnostics_run_id }}",
+        "run_dir": "{{ jumpstarter_diagnostics_run_dir }}",
+        "jmp_present": {{ (jumpstarter_diagnostics_jmp_present | bool) | lower }},
+        "jmp_path": "{{ jumpstarter_diagnostics_jmp_path | default('') }}",
+        "has_client_context": {{ (_js_diag_has_client_context | bool) | lower }},
+        "ran_queries": {{ (_js_diag_run_queries | bool) | lower }},
+        "exporters_rc": {{ (_js_diag_exporters.rc | default(-1)) }},
+        "leases_rc": {{ (_js_diag_leases.rc | default(-1)) }}
+      }
+
+- name: Set archive path default
+  ansible.builtin.set_fact:
+    jumpstarter_diagnostics_archive_path_effective: >-
+      {{
+        (jumpstarter_diagnostics_archive_path | default('') | length > 0)
+        | ternary(
+            jumpstarter_diagnostics_archive_path,
+            jumpstarter_diagnostics_output_dir.rstrip('/') ~ '/jumpstarter_diagnostics_' ~ jumpstarter_diagnostics_run_id ~ '.tar.gz'
+          )
+      }}
+  when: jumpstarter_diagnostics_create_archive | bool
+
+
+- name: Create tar.gz archive
+  ansible.builtin.command: >-
+    bash -lc
+    "tar -C {{ jumpstarter_diagnostics_output_dir.rstrip('/') }} -czf {{ jumpstarter_diagnostics_archive_path_effective }} {{ jumpstarter_diagnostics_run_id }}"
+  register: _js_diag_archive
+  changed_when: true
+  when: jumpstarter_diagnostics_create_archive | bool
+
+- name: Expose role results
+  ansible.builtin.set_fact:
+    jumpstarter_diagnostics_result:
+      run_id: "{{ jumpstarter_diagnostics_run_id }}"
+      run_dir: "{{ jumpstarter_diagnostics_run_dir }}"
+      archive_path: "{{ (jumpstarter_diagnostics_create_archive | bool) | ternary(jumpstarter_diagnostics_archive_path_effective, '') }}"
+      jmp_present: "{{ jumpstarter_diagnostics_jmp_present | bool }}"
+      ran_queries: "{{ _js_diag_run_queries | bool }}"

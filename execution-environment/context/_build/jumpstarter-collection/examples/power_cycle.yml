@@ -1,0 +1,17 @@
+---
+- hosts: localhost
+  gather_facts: false
+  collections:
+    - jumpstarter.jumpstarter
+
+  vars:
+    jumpstarter_exporter: test
+
+  tasks:
+    - name: Cycle power using Jumpstarter power module
+      jumpstarter.jumpstarter.jumpstarter_power:
+        exporter: "{{ jumpstarter_exporter }}"
+        state: cycle
+        wait: 1
+
+

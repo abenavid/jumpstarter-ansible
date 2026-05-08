@@ -3,32 +3,30 @@ version: 3
 
 images:
   base_image:
-    name: registry.redhat.io/ansible-automation-platform-25/ee-minimal-rhel9:latest
+    name: registry.redhat.io/ansible-automation-platform-26/ee-minimal-rhel9:latest
 
 options:
   package_manager_path: /usr/bin/microdnf
 
 dependencies:
-  system:
-    - git
-  python:
-    - requests
-    - jmespath
+  system: []
+  python: []
   galaxy:
-    collections:
-      - community.general
-      - ansible.utils
-      - containers.podman
-      - infra.ee_utilities
-      - jumpstarter.jumpstarter
+    collections: []
 
 additional_build_files:
-  - src: exporters
+  - src: ../exporters
     dest: exporters
+  - src: ../ansible_collections/jumpstarter/jumpstarter
+    dest: jumpstarter-collection
 
 additional_build_steps:
+  append_galaxy:
+    - RUN mkdir -p /usr/share/ansible/collections/ansible_collections/jumpstarter
+    - RUN cp -r /build/jumpstarter-collection /usr/share/ansible/collections/ansible_collections/jumpstarter/jumpstarter
   append_final:
     - RUN mkdir -p /etc/jumpstarter && mkdir -p /home/runner/.config/jumpstarter
-    - RUN python3 -m pip install --no-cache-dir --extra-index-url https://pkg.jumpstarter.dev/simple jumpstarter-all
+    - RUN python3 -m pip install --no-cache-dir --extra-index-url https://pkg.jumpstarter.dev/simple jumpstarter-cli jumpstarter-driver-opendal jumpstarter-driver-power jumpstarter-driver-pyserial jumpstarter-driver-composite
+    - RUN python3 -m pip cache purge || true
     - COPY _build/exporters /etc/jumpstarter/exporters
     - RUN jmp version

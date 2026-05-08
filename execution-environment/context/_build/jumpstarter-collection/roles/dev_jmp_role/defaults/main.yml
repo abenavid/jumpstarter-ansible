@@ -1,0 +1,108 @@
+---
+jumpstarter_test_bin_dir: /tmp/jumpstarter_test_bin
+
+# Keep PATH explicit so we do not depend on inherited env inside the EE
+jumpstarter_test_default_path: "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+jumpstarter_test_write_client_config: false
+jumpstarter_test_client_config_dir: /etc/jumpstarter
+jumpstarter_test_client_config_path: /etc/jumpstarter/client.yaml
+
+# Fake client config content (only used if you enable jumpstarter_test_write_client_config)
+jumpstarter_test_client_config_content: |
+  apiVersion: jumpstarter.dev/v1alpha1
+  kind: ClientConfig
+  metadata:
+    name: test
+    namespace: ""
+  endpoint: ""
+  token: ""
+  drivers:
+    allow:
+      power:
+        type: jumpstarter_driver_power.driver.MockPower
+      storage:
+        type: jumpstarter_driver_opendal.driver.MockStorageMux
+      serial:
+        type: jumpstarter_driver_pyserial.driver.PySerial
+        config:
+          url: "loop://"
+
+# Fake `jmp` implementation used for unit tests
+jumpstarter_test_fake_jmp_content: |
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  if [[ "${1:-}" == "version" ]]; then
+    echo "Jumpstarter vFAKE-TEST"
+    exit 0
+  fi
+
+  if [[ "${1:-}" == "create" && "${2:-}" == "lease" ]]; then
+    selector=""
+    duration=""
+    output="name"
+
+    shift 2
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        -l)
+          selector="${2:-}"
+          shift 2
+          ;;
+        --duration)
+          duration="${2:-}"
+          shift 2
+          ;;
+        -o)
+          output="${2:-}"
+          shift 2
+          ;;
+        --client-config|--client)
+          shift 2
+          ;;
+        *)
+          shift 1
+          ;;
+      esac
+    done
+
+    if [[ -z "${selector}" ]]; then
+      echo "Error: missing selector" >&2
+      exit 2
+    fi
+    if [[ -z "${duration}" ]]; then
+      echo "Error: missing duration" >&2
+      exit 2
+    fi
+
+    if [[ "${output}" == "name" ]]; then
+      echo "lease/test-123"
+    else
+      echo "{\"name\":\"lease/test-123\",\"selector\":\"${selector}\",\"duration\":\"${duration}\"}"
+    fi
+    exit 0
+  fi
+
+  if [[ "${1:-}" == "delete" && "${2:-}" == "leases" ]]; then
+    lease_name="${3:-}"
+    if [[ -z "${lease_name}" ]]; then
+      echo "Error: missing lease name" >&2
+      exit 2
+    fi
+    echo "deleted ${lease_name}"
+    exit 0
+  fi
+
+  if [[ "${1:-}" == "renew" && "${2:-}" == "lease" ]]; then
+    lease_name="${3:-}"
+    if [[ -z "${lease_name}" ]]; then
+      echo "Error: missing lease name" >&2
+      exit 2
+    fi
+    echo "renewed ${lease_name}"
+    exit 0
+  fi
+
+  echo "Usage: jmp <command> ..." >&2
+  exit 2

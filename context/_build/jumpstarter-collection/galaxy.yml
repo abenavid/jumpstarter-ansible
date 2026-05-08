@@ -1,0 +1,26 @@
+namespace: jumpstarter
+name: jumpstarter
+version: 0.1.0
+readme: README.md
+authors:
+  - "Alex Benavides <abenavid@redhat.com>"
+description: >
+  Ansible collection that wraps the Jumpstarter tool (jmp/j) in
+  custom modules for managing exporters, power, storage, serial consoles,
+  and generic Jumpstarter shell commands from playbooks.
+license: Apache-2.0
+license_file: LICENSE
+tags:
+  - jumpstarter
+  - testing
+  - hardware
+  - edge
+  - automation
+repository: "https://github.com/jumpstarter-dev/jumpstarter-ansible"
+issues: "https://github.com/jumpstarter-dev/jumpstarter-ansible/issues"
+homepage: "https://jumpstarter.dev/main/index.html"
+build_ignore:
+  - context/
+  - test-artifact-*.json
+
+

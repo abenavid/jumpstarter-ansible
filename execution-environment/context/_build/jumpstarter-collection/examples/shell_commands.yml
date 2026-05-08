@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  gather_facts: false
+  collections:
+    - jumpstarter.jumpstarter
+
+  vars:
+    jumpstarter_exporter: test
+
+  tasks:
+    - name: Run multiple Jumpstarter j commands via shell
+      jumpstarter.jumpstarter.jumpstarter_shell:
+        exporter: "{{ jumpstarter_exporter }}"
+        commands:
+          - "j power off"
+          - "j power on --wait 2"
+      register: jumpstarter_result
+
+    - name: Show Jumpstarter output
+      ansible.builtin.debug:
+        var: jumpstarter_result
+
+

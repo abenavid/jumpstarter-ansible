@@ -1,0 +1,38 @@
+---
+- name: Jumpstarter power cycle with preflight
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    jumpstarter_exporter: test
+    jumpstarter_client_config: /etc/jumpstarter/client.yaml
+
+  tasks:
+    - name: Preflight
+      jumpstarter.jumpstarter.jumpstarter_preflight:
+        exporter: "{{ jumpstarter_exporter }}"
+        client_config: "{{ jumpstarter_client_config }}"
+        check_config_dirs: true
+      register: preflight
+
+    - name: Show preflight summary
+      ansible.builtin.debug:
+        msg:
+          - "jmp_present={{ preflight.jmp_present }}"
+          - "jmp_version={{ preflight.jmp_version }}"
+          - "exporter_present={{ preflight.exporter_present }}"
+          - "user_config_dir_exists={{ preflight.user_config_dir_exists | default('n a') }}"
+          - "exporters_dir_exists={{ preflight.exporters_dir_exists | default('n a') }}"
+
+    - name: Cycle power
+      jumpstarter.jumpstarter.jumpstarter_power:
+        exporter: "{{ jumpstarter_exporter }}"
+        state: cycle
+        wait: 1
+        timeout: 60
+      register: power_out
+
+    - name: Show power result
+      ansible.builtin.debug:
+        var: power_out
