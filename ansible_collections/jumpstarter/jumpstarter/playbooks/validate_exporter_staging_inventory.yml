@@ -4,7 +4,9 @@
 # from Git. Exporter YAMLs are read from the automation project checkout (default
 # path below). Each inventory host must define jumpstarter_exporter_name.
 #
-# For local runs: ANSIBLE_COLLECTIONS_PATH must include the parent of ansible_collections.
+# Collections path: repo-root ansible.cfg (and playbooks/ansible.cfg) add the
+# project tree so jumpstarter.jumpstarter roles resolve in AAP and locally.
+# Alternatively set ANSIBLE_COLLECTIONS_PATHS to the parent of ansible_collections.
 - name: Validate exporter staging (AAP inventory)
   hosts: all
   gather_facts: false
