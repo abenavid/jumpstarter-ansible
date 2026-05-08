@@ -1,0 +1,168 @@
+---
+# Expected failures for exporter staging; run with:
+# ANSIBLE_COLLECTIONS_PATH=... ansible-playbook playbooks/validate_exporter_staging_negative.yml
+- name: Missing exporter should fail clearly
+  hosts: localhost
+  gather_facts: false
+  vars:
+    jumpstarter_exporter_name: definitely-missing-exporter
+    jumpstarter_required_exporter_name: definitely-missing-exporter
+    jumpstarter_exporter_source: project
+    jumpstarter_repo_root: "{{ playbook_dir }}/../../../.."
+    jumpstarter_project_exporters_dir: "{{ jumpstarter_repo_root }}/exporters"
+    jumpstarter_runtime_exporters_dir: /tmp/jumpstarter/exporters_validate_missing
+  tasks:
+    - name: Expect staging failure (no such exporter in project)
+      block:
+        - name: Run staging
+          ansible.builtin.include_role:
+            name: jumpstarter.jumpstarter.jumpstarter_exporter_stage
+
+        - name: Should not reach here
+          ansible.builtin.fail:
+            msg: staging should have failed for missing exporter
+      rescue:
+        - name: Confirm failure mentions missing exporter
+          ansible.builtin.assert:
+            that:
+              - >-
+                ('Required exporter file missing' in (ansible_failed_result.msg | default('')))
+                or ('No exporter YAML found' in (ansible_failed_result.msg | default('')))
+                or ('No *.yaml' in (ansible_failed_result.msg | default('')))
+            fail_msg: "{{ ansible_failed_result.msg | default('no message') }}"
+
+- name: metadata.name mismatch should fail clearly
+  hosts: localhost
+  gather_facts: false
+  vars:
+    jumpstarter_exporter_name: sim-vehicle-exporter
+    jumpstarter_required_exporter_name: sim-vehicle-exporter
+    jumpstarter_exporter_source: project
+    jumpstarter_runtime_exporters_dir: /tmp/jumpstarter/exporters_validate_meta
+  tasks:
+    - name: Create temp exporters dir with wrong metadata.name
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: jumpstarter_badmeta
+      register: _badmeta_dir
+
+    - name: Write mismatched ExporterConfig
+      ansible.builtin.copy:
+        dest: "{{ _badmeta_dir.path }}/sim-vehicle-exporter.yaml"
+        mode: "0644"
+        content: |
+          apiVersion: jumpstarter.dev/v1alpha1
+          kind: ExporterConfig
+          metadata:
+            name: wrong-name
+            namespace: ""
+          endpoint: ""
+          token: ""
+          export:
+            power:
+              type: jumpstarter_driver_power.driver.MockPower
+            storage:
+              type: jumpstarter_driver_opendal.driver.MockStorageMux
+            serial:
+              type: jumpstarter_driver_pyserial.driver.PySerial
+              config:
+                url: "loop://"
+
+    - name: Expect metadata validation failure
+      block:
+        - name: Run staging against bad metadata
+          ansible.builtin.include_role:
+            name: jumpstarter.jumpstarter.jumpstarter_exporter_stage
+          vars:
+            jumpstarter_project_exporters_dir: "{{ _badmeta_dir.path }}"
+
+        - name: Should not reach here
+          ansible.builtin.fail:
+            msg: staging should have failed on metadata mismatch
+      rescue:
+        - name: Confirm failure mentions metadata.name
+          ansible.builtin.assert:
+            that:
+              - "'metadata.name' in (ansible_failed_result.msg | default('')) or 'Exporter YAML metadata.name' in (ansible_failed_result.msg | default(''))"
+            fail_msg: "{{ ansible_failed_result.msg | default('no message') }}"
+
+- name: Git source without repo URL should fail clearly
+  hosts: localhost
+  gather_facts: false
+  vars:
+    jumpstarter_exporter_name: test
+    jumpstarter_required_exporter_name: test
+    jumpstarter_exporter_source: git
+    jumpstarter_exporters_git_repo: ""
+    jumpstarter_runtime_exporters_dir: /tmp/jumpstarter/exporters_validate_git
+  tasks:
+    - name: Expect Git URL failure
+      block:
+        - name: Run staging
+          ansible.builtin.include_role:
+            name: jumpstarter.jumpstarter.jumpstarter_exporter_stage
+
+        - name: Should not reach here
+          ansible.builtin.fail:
+            msg: staging should have failed without git repo
+      rescue:
+        - name: Confirm failure mentions git repo
+          ansible.builtin.assert:
+            that:
+              - "'jumpstarter_exporters_git_repo' in (ansible_failed_result.msg | default(''))"
+            fail_msg: "{{ ansible_failed_result.msg | default('no message') }}"
+
+- name: S3 source without bucket should fail clearly
+  hosts: localhost
+  gather_facts: false
+  vars:
+    jumpstarter_exporter_name: test
+    jumpstarter_required_exporter_name: test
+    jumpstarter_exporter_source: s3
+    jumpstarter_exporters_s3_bucket: ""
+    jumpstarter_runtime_exporters_dir: /tmp/jumpstarter/exporters_validate_s3
+  tasks:
+    - name: Expect bucket failure
+      block:
+        - name: Run staging
+          ansible.builtin.include_role:
+            name: jumpstarter.jumpstarter.jumpstarter_exporter_stage
+
+        - name: Should not reach here
+          ansible.builtin.fail:
+            msg: staging should have failed without bucket
+      rescue:
+        - name: Confirm failure mentions bucket
+          ansible.builtin.assert:
+            that:
+              - "'jumpstarter_exporters_s3_bucket' in (ansible_failed_result.msg | default(''))"
+            fail_msg: "{{ ansible_failed_result.msg | default('no message') }}"
+
+- name: Jumpstarter bridge tasks must not run after staging failure
+  hosts: localhost
+  gather_facts: false
+  vars:
+    jumpstarter_exporter_name: no-such-exporter
+    jumpstarter_required_exporter_name: no-such-exporter
+    jumpstarter_exporter_source: project
+    jumpstarter_project_exporters_dir: /tmp/nonexistent-jumpstarter-exporters-dir
+    jumpstarter_runtime_exporters_dir: /tmp/jumpstarter/exporters_validate_bridge
+  tasks:
+    - name: Staging failure should prevent later bridge
+      block:
+        - name: Run staging against missing project dir
+          ansible.builtin.include_role:
+            name: jumpstarter.jumpstarter.jumpstarter_exporter_stage
+
+        - name: Simulated bridge step (must not execute)
+          ansible.builtin.fail:
+            msg: BRIDGE_RAN_BUT_SHOULD_NOT
+      rescue:
+        - name: Expect staging error, not bridge marker
+          ansible.builtin.assert:
+            that:
+              - "'BRIDGE_RAN_BUT_SHOULD_NOT' not in (ansible_failed_result.msg | default(''))"
+              - >-
+                ('Project exporter source directory' in (ansible_failed_result.msg | default('')))
+                or ('missing' in (ansible_failed_result.msg | default('') | lower))
+            fail_msg: "{{ ansible_failed_result.msg | default('no message') }}"

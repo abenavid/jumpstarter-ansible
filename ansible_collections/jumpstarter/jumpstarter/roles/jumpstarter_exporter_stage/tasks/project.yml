@@ -1,0 +1,67 @@
+---
+- name: Check project exporters directory
+  ansible.builtin.stat:
+    path: "{{ jumpstarter_project_exporters_dir }}"
+  register: _jumpstarter_proj_exporters_dir
+
+- name: Fail when project exporters directory is missing
+  ansible.builtin.fail:
+    msg: >-
+      Project exporter source directory does not exist: {{ jumpstarter_project_exporters_dir }}.
+  when: not (_jumpstarter_proj_exporters_dir.stat.exists | default(false))
+
+- name: Find exporter YAML files in project (all exporters)
+  when: jumpstarter_stage_all_exporters | bool
+  ansible.builtin.find:
+    paths: "{{ jumpstarter_project_exporters_dir }}"
+    patterns: "*.yaml,*.yml"
+    file_type: file
+    recurse: false
+  register: _jumpstarter_proj_yaml_find
+
+- name: Fail when no YAML exporters found in project directory
+  when:
+    - jumpstarter_stage_all_exporters | bool
+    - (_jumpstarter_proj_yaml_find.matched | default(0) | int) < 1
+  ansible.builtin.fail:
+    msg: >-
+      No *.yaml or *.yml files under {{ jumpstarter_project_exporters_dir }}; nothing to stage.
+
+- name: Copy all project exporter YAML into runtime directory
+  when: jumpstarter_stage_all_exporters | bool
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: >-
+      {{ jumpstarter_runtime_exporters_dir }}/{{ item.path | basename | regex_replace('\\.yml$', '.yaml') }}
+    mode: "0644"
+  loop: "{{ _jumpstarter_proj_yaml_find.files | default([]) }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: Locate required exporter in project (single-exporter mode)
+  when: not (jumpstarter_stage_all_exporters | bool)
+  ansible.builtin.set_fact:
+    jumpstarter_project_exporter_src: "{{ lookup('first_found', params, errors='ignore') }}"
+  vars:
+    params:
+      files:
+        - "{{ jumpstarter_required_exporter_name }}.yaml"
+        - "{{ jumpstarter_required_exporter_name }}.yml"
+      paths:
+        - "{{ jumpstarter_project_exporters_dir }}"
+
+- name: Fail when required project exporter is missing
+  when:
+    - not (jumpstarter_stage_all_exporters | bool)
+    - (jumpstarter_project_exporter_src | default('') | length) < 1
+  ansible.builtin.fail:
+    msg: >-
+      No exporter YAML found for {{ jumpstarter_required_exporter_name }} under {{ jumpstarter_project_exporters_dir }}
+      (expected {{ jumpstarter_required_exporter_name }}.yaml or .yml).
+
+- name: Copy required exporter into runtime directory (single-exporter mode)
+  when: not (jumpstarter_stage_all_exporters | bool)
+  ansible.builtin.copy:
+    src: "{{ jumpstarter_project_exporter_src }}"
+    dest: "{{ jumpstarter_runtime_exporters_dir }}/{{ jumpstarter_required_exporter_name }}.yaml"
+    mode: "0644"

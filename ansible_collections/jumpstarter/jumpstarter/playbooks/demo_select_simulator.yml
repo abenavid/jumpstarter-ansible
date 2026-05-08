@@ -1,0 +1,322 @@
+---
+# Demo: file-backed simulators for vehicle, infotainment, and edge gateway workflows.
+# Optionally bridges each host to Jumpstarter (jmp) after staging exporter YAML, preflight, and optional lease.
+# Run from the collection root (directory that contains simulators/, playbooks/, inventories/).
+- name: Select simulators and update twin/state files
+  hosts: simulated_devices
+  gather_facts: true
+  vars:
+    simulator_use_jumpstarter: false
+    simulator_enable_probabilistic_failures: true
+    simulator_random_seed: null
+    simulator_scenario_failure_messages:
+      vehicle_unstable_ota: "OTA bundle verification failed after retry"
+      vehicle_low_battery: "Boot blocked by low battery / PMIC brownout"
+      infotainment_screen_failure: "Display self-test failed"
+      gateway_network_flaky: "WAN/VPN readiness check failed"
+      sensor_hub_degraded: "Sensor fusion health check degraded"
+    # Leases require a Jumpstarter controller client config; local mock exporters use jmp shell --exporter-config only.
+    jumpstarter_use_lease: false
+    jumpstarter_lease_duration: 30m
+    # Empty/null: omit --client-config everywhere (preflight/lease). Set a path inside the EE for controller-backed jobs.
+    jumpstarter_client_config: null
+    jumpstarter_repo_root: "{{ playbook_dir }}/../../../.."
+    jumpstarter_exporter_source: project
+    jumpstarter_project_exporters_dir: "{{ jumpstarter_repo_root }}/exporters"
+    jumpstarter_runtime_exporters_dir: /tmp/jumpstarter/exporters
+    jumpstarter_stage_exporters: true
+    simulator_jumpstarter_commands:
+      - "j serial read --timeout 2"
+    simulator_jumpstarter_run_power: false
+    simulator_jumpstarter_power_state: on
+    simulator_jumpstarter_power_wait: 0
+  tasks:
+    - name: Select simulator for this host
+      ansible.builtin.include_role:
+        name: jumpstarter.jumpstarter.simulator_select
+
+    - name: Show simulator metadata from twin
+      ansible.builtin.debug:
+        msg: "{{ simulator_twin.metadata | default({}) }}"
+
+    - name: Record simulator failure rate from config (file-only path)
+      when: not (simulator_use_jumpstarter | bool)
+      ansible.builtin.set_fact:
+        simulator_failure_rate: "{{ (simulator_config.failure_rate | default(0.0)) | float }}"
+
+    - name: Sample random roll for probabilistic file-only failures (deterministic seed)
+      when:
+        - not (simulator_use_jumpstarter | bool)
+        - simulator_enable_probabilistic_failures | bool
+        - simulator_random_seed is not none
+        - ((simulator_random_seed | string) | trim | length) > 0
+      ansible.builtin.set_fact:
+        simulator_roll: >-
+          {{
+            (
+              1000000000
+              | random(
+                  0,
+                  999999999,
+                  seed=(
+                    ((simulator_random_seed | string) ~ '::' ~ inventory_hostname)
+                    | hash('sha256')
+                  )
+                )
+            ) / 1000000000.0
+          }}
+
+    - name: Sample random roll for probabilistic file-only failures (non-deterministic)
+      when:
+        - not (simulator_use_jumpstarter | bool)
+        - simulator_enable_probabilistic_failures | bool
+        - >-
+          simulator_random_seed is none
+          or ((simulator_random_seed | string) | trim | length) == 0
+      ansible.builtin.set_fact:
+        simulator_roll: "{{ (1000000000 | random(0, 999999999)) / 1000000000.0 }}"
+
+    - name: Decide probabilistic simulated failure (file-only)
+      when:
+        - not (simulator_use_jumpstarter | bool)
+        - simulator_enable_probabilistic_failures | bool
+      ansible.builtin.set_fact:
+        simulator_should_fail: "{{ (simulator_roll | float) < (simulator_failure_rate | float) }}"
+
+    - name: Disable probabilistic simulated failure when feature is off (file-only)
+      when:
+        - not (simulator_use_jumpstarter | bool)
+        - not (simulator_enable_probabilistic_failures | bool)
+      ansible.builtin.set_fact:
+        simulator_should_fail: false
+
+    - name: Prepare file-only demo state/twin payloads
+      when: not (simulator_use_jumpstarter | bool)
+      ansible.builtin.set_fact:
+        _sim_file_demo_state_pass:
+          power: "on"
+          boot_status: "running"
+          ota_status: "idle"
+          health: "ok"
+          last_command: "demo_select_simulator"
+          error: null
+        _sim_file_demo_state_fail:
+          power: "on"
+          boot_status: "failed"
+          ota_status: "idle"
+          health: "failed"
+          last_command: "demo_select_simulator"
+          error: >-
+            {{
+              simulator_scenario_failure_messages[simulator_name]
+              if simulator_name in simulator_scenario_failure_messages
+              else 'Simulated failure injected from failure_rate'
+            }}
+        _sim_file_demo_twin_pass:
+          status: "testing"
+          power_state: "on"
+          last_test_result: "pass"
+          exporter: "{{ jumpstarter_exporter_name }}"
+        _sim_file_demo_twin_fail:
+          status: "failed"
+          power_state: "on"
+          last_test_result: "fail"
+          exporter: "{{ jumpstarter_exporter_name }}"
+
+    - name: Apply initial simulator state (pre-connection)
+      ansible.builtin.include_role:
+        name: jumpstarter.jumpstarter.simulator_update_state
+      vars:
+        simulator_state_remove_keys:
+          - last_test_result
+        simulator_state_updates:
+          last_command: "demo_select_simulator"
+          health: "unknown"
+          error: null
+        simulator_twin_updates:
+          status: "connecting"
+          exporter: "{{ jumpstarter_exporter_name }}"
+        simulator_update_twin: true
+
+    - name: File-only demo completion (twin/state files only)
+      when: not (simulator_use_jumpstarter | bool)
+      ansible.builtin.include_role:
+        name: jumpstarter.jumpstarter.simulator_update_state
+      vars:
+        simulator_state_remove_keys:
+          - last_test_result
+        simulator_state_updates: >-
+          {{
+            _sim_file_demo_state_fail
+            if (simulator_should_fail | bool)
+            else _sim_file_demo_state_pass
+          }}
+        simulator_twin_updates: >-
+          {{
+            _sim_file_demo_twin_fail
+            if (simulator_should_fail | bool)
+            else _sim_file_demo_twin_pass
+          }}
+        simulator_update_twin: true
+
+    - name: Stage exporter YAML into runtime path (Jumpstarter mode)
+      when: simulator_use_jumpstarter | bool
+      ansible.builtin.include_role:
+        name: jumpstarter.jumpstarter.jumpstarter_exporter_stage
+
+    - name: Optional Jumpstarter bridge (preflight, lease, jmp commands)
+      when: simulator_use_jumpstarter | bool
+      block:
+        - name: Initialize demo Jumpstarter lease tracking
+          ansible.builtin.set_fact:
+            _sim_demo_lease_name: ""
+
+        - block:
+            - name: Jumpstarter preflight
+              jumpstarter.jumpstarter.jumpstarter_preflight:
+                exporter: "{{ jumpstarter_exporter_name }}"
+                exporters_dir: "{{ jumpstarter_runtime_exporters_dir }}"
+                exporter_config_path: >-
+                  {{
+                    jumpstarter_runtime_exporter_config_path
+                    if jumpstarter_runtime_exporter_config_path | default('') | length > 0
+                    else omit
+                  }}
+                client_config: >-
+                  {{
+                    jumpstarter_client_config
+                    if jumpstarter_client_config is not none
+                    and (jumpstarter_client_config | string | length) > 0
+                    else omit
+                  }}
+
+            - name: Acquire Jumpstarter lease
+              when: jumpstarter_use_lease | bool
+              jumpstarter.jumpstarter.jumpstarter_lease:
+                state: acquire
+                selector: "exporter={{ jumpstarter_exporter_name }}"
+                duration: "{{ jumpstarter_lease_duration }}"
+                output: name
+                client_config: >-
+                  {{
+                    jumpstarter_client_config
+                    if jumpstarter_client_config is not none
+                    and (jumpstarter_client_config | string | length) > 0
+                    else omit
+                  }}
+              register: _sim_demo_lease_acquire
+
+            - name: Remember lease name for always-released cleanup
+              when:
+                - jumpstarter_use_lease | bool
+                - _sim_demo_lease_acquire is not skipped
+              ansible.builtin.set_fact:
+                _sim_demo_lease_name: "{{ _sim_demo_lease_acquire.lease_name | default('') | trim }}"
+
+            - name: Run Jumpstarter shell commands (staged exporter YAML)
+              when: jumpstarter_runtime_exporter_config_path | default('') | length > 0
+              jumpstarter.jumpstarter.jumpstarter_shell:
+                exporter_config: "{{ jumpstarter_runtime_exporter_config_path }}"
+                commands: "{{ simulator_jumpstarter_commands }}"
+
+            - name: Run Jumpstarter shell commands (exporter name)
+              when: jumpstarter_runtime_exporter_config_path | default('') | length == 0
+              jumpstarter.jumpstarter.jumpstarter_shell:
+                exporter: "{{ jumpstarter_exporter_name }}"
+                commands: "{{ simulator_jumpstarter_commands }}"
+
+            - name: Optional Jumpstarter power operation (staged exporter YAML)
+              when:
+                - simulator_jumpstarter_run_power | bool
+                - jumpstarter_runtime_exporter_config_path | default('') | length > 0
+              jumpstarter.jumpstarter.jumpstarter_power:
+                exporter_config: "{{ jumpstarter_runtime_exporter_config_path }}"
+                state: "{{ simulator_jumpstarter_power_state }}"
+                wait: "{{ simulator_jumpstarter_power_wait | int }}"
+
+            - name: Optional Jumpstarter power operation (exporter name)
+              when:
+                - simulator_jumpstarter_run_power | bool
+                - jumpstarter_runtime_exporter_config_path | default('') | length == 0
+              jumpstarter.jumpstarter.jumpstarter_power:
+                exporter: "{{ jumpstarter_exporter_name }}"
+                state: "{{ simulator_jumpstarter_power_state }}"
+                wait: "{{ simulator_jumpstarter_power_wait | int }}"
+
+            - name: Record Jumpstarter bridge success in simulator files
+              ansible.builtin.include_role:
+                name: jumpstarter.jumpstarter.simulator_update_state
+              vars:
+                simulator_state_remove_keys:
+                  - last_test_result
+                simulator_state_updates:
+                  power: "on"
+                  boot_status: "running"
+                  ota_status: "idle"
+                  health: "ok"
+                  last_command: "demo_select_simulator"
+                  error: null
+                simulator_twin_updates:
+                  status: "idle"
+                  power_state: "on"
+                  last_test_result: "pass"
+                  exporter: "{{ jumpstarter_exporter_name }}"
+                simulator_update_twin: true
+
+          rescue:
+            - name: Capture Jumpstarter failure details
+              ansible.builtin.set_fact:
+                _sim_demo_js_error: >-
+                  {{ ansible_failed_result.msg | default('unknown error') }}
+                _sim_demo_js_task: >-
+                  {{ ansible_failed_task.name | default('unknown task') }}
+
+            - name: Record Jumpstarter bridge failure in simulator files
+              ansible.builtin.include_role:
+                name: jumpstarter.jumpstarter.simulator_update_state
+              vars:
+                simulator_state_remove_keys:
+                  - last_test_result
+                simulator_state_updates:
+                  health: "failed"
+                  last_command: "demo_select_simulator"
+                  error: >-
+                    {{ _sim_demo_js_task }}: {{ _sim_demo_js_error }}
+                simulator_twin_updates:
+                  status: "failed"
+                  last_test_result: "fail"
+                  exporter: "{{ jumpstarter_exporter_name }}"
+                simulator_update_twin: true
+
+          always:
+            - name: Release Jumpstarter lease when acquired
+              when:
+                - jumpstarter_use_lease | bool
+                - (_sim_demo_lease_name | default('') | length) > 0
+              jumpstarter.jumpstarter.jumpstarter_lease:
+                state: release
+                lease_name: "{{ _sim_demo_lease_name }}"
+                client_config: >-
+                  {{
+                    jumpstarter_client_config
+                    if jumpstarter_client_config is not none
+                    and (jumpstarter_client_config | string | length) > 0
+                    else omit
+                  }}
+              ignore_errors: true
+
+    - name: Reload twin after playbook steps
+      ansible.builtin.include_vars:
+        file: "{{ simulator_twin_path }}"
+        name: simulator_twin_final
+
+    - name: Reload state after playbook steps
+      ansible.builtin.include_vars:
+        file: "{{ simulator_state_path }}"
+        name: simulator_state_final
+
+    - name: Show final twin and state
+      ansible.builtin.debug:
+        msg:
+          twin: "{{ simulator_twin_final }}"
+          state: "{{ simulator_state_final }}"

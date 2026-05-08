@@ -1,0 +1,84 @@
+---
+- name: Fail when Git exporter repo URL is not set
+  ansible.builtin.fail:
+    msg: >-
+      jumpstarter_exporter_source is "git" but jumpstarter_exporters_git_repo is empty.
+      Set jumpstarter_exporters_git_repo to a reachable Git URL (credentials via AAP credential, SSH agent, or HTTPS token — not in Ansible vars).
+  when: (jumpstarter_exporters_git_repo | default('') | trim | length) < 1
+
+- name: Clone or update exporter definitions from Git
+  ansible.builtin.git:
+    repo: "{{ jumpstarter_exporters_git_repo }}"
+    dest: "{{ jumpstarter_exporters_git_dest }}"
+    version: "{{ jumpstarter_exporters_git_version }}"
+    update: true
+    force: true
+
+- name: Check Git exporters subdirectory
+  ansible.builtin.stat:
+    path: "{{ jumpstarter_exporters_git_dest }}/{{ jumpstarter_exporters_git_subdir }}"
+  register: _jumpstarter_git_subdir_stat
+
+- name: Fail when Git exporters subdirectory is missing
+  ansible.builtin.fail:
+    msg: >-
+      After cloning {{ jumpstarter_exporters_git_repo }}, expected directory
+      {{ jumpstarter_exporters_git_dest }}/{{ jumpstarter_exporters_git_subdir }}.
+      Adjust jumpstarter_exporters_git_subdir.
+  when: not (_jumpstarter_git_subdir_stat.stat.exists | default(false))
+
+- name: Find exporter YAML under Git checkout
+  when: jumpstarter_stage_all_exporters | bool
+  ansible.builtin.find:
+    paths: "{{ jumpstarter_exporters_git_dest }}/{{ jumpstarter_exporters_git_subdir }}"
+    patterns: "*.yaml,*.yml"
+    file_type: file
+    recurse: false
+  register: _jumpstarter_git_yaml_find
+
+- name: Fail when no YAML exporters found in Git subdirectory
+  when:
+    - jumpstarter_stage_all_exporters | bool
+    - (_jumpstarter_git_yaml_find.matched | default(0) | int) < 1
+  ansible.builtin.fail:
+    msg: >-
+      No *.yaml/*.yml in {{ jumpstarter_exporters_git_dest }}/{{ jumpstarter_exporters_git_subdir }}.
+
+- name: Copy all Git exporter YAML into runtime directory
+  when: jumpstarter_stage_all_exporters | bool
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: >-
+      {{ jumpstarter_runtime_exporters_dir }}/{{ item.path | basename | regex_replace('\\.yml$', '.yaml') }}
+    mode: "0644"
+  loop: "{{ _jumpstarter_git_yaml_find.files | default([]) }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: Locate required exporter in Git checkout (single-exporter mode)
+  when: not (jumpstarter_stage_all_exporters | bool)
+  ansible.builtin.set_fact:
+    jumpstarter_git_exporter_src: "{{ lookup('first_found', params, errors='ignore') }}"
+  vars:
+    params:
+      files:
+        - "{{ jumpstarter_required_exporter_name }}.yaml"
+        - "{{ jumpstarter_required_exporter_name }}.yml"
+      paths:
+        - "{{ jumpstarter_exporters_git_dest }}/{{ jumpstarter_exporters_git_subdir }}"
+
+- name: Fail when required Git exporter is missing
+  when:
+    - not (jumpstarter_stage_all_exporters | bool)
+    - (jumpstarter_git_exporter_src | default('') | length) < 1
+  ansible.builtin.fail:
+    msg: >-
+      No exporter YAML for {{ jumpstarter_required_exporter_name }} under
+      {{ jumpstarter_exporters_git_dest }}/{{ jumpstarter_exporters_git_subdir }}.
+
+- name: Copy required Git exporter into runtime directory (single-exporter mode)
+  when: not (jumpstarter_stage_all_exporters | bool)
+  ansible.builtin.copy:
+    src: "{{ jumpstarter_git_exporter_src }}"
+    dest: "{{ jumpstarter_runtime_exporters_dir }}/{{ jumpstarter_required_exporter_name }}.yaml"
+    mode: "0644"

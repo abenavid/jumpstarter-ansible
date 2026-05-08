@@ -1,0 +1,22 @@
+---
+# How exporter YAML is sourced before preflight/shell (runtime data, not EE image content).
+# Allowed: project | git | s3
+jumpstarter_exporter_source: project
+
+jumpstarter_runtime_exporters_dir: /tmp/jumpstarter/exporters
+
+# Project source (automation checkout or local workspace).
+# Override in playbooks when your repo layout differs (for example {{ jumpstarter_repo_root }}/exporters).
+jumpstarter_project_exporters_dir: "{{ playbook_dir }}/../../../exporters"
+
+# Git source
+jumpstarter_exporters_git_repo: ""
+jumpstarter_exporters_git_version: "main"
+jumpstarter_exporters_git_subdir: "exporters"
+jumpstarter_exporters_git_dest: "/tmp/jumpstarter/exporters_repo"
+
+# When true, copy every *.yaml/*.yml from the resolved source tree into the runtime dir.
+# When false, copy only the required exporter (still validated below).
+jumpstarter_stage_all_exporters: true
+
+jumpstarter_required_exporter_name: "{{ jumpstarter_exporter_name }}"

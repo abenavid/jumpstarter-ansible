@@ -1,0 +1,28 @@
+---
+# Positive check: project source stages repo-root exporters and validates metadata.
+# ANSIBLE_COLLECTIONS_PATH must include the parent of ansible_collections.
+- name: Validate exporter staging (project source)
+  hosts: localhost
+  gather_facts: false
+  vars:
+    jumpstarter_exporter_name: sim-vehicle-exporter
+    jumpstarter_required_exporter_name: sim-vehicle-exporter
+    jumpstarter_exporter_source: project
+    jumpstarter_repo_root: "{{ playbook_dir }}/../../../.."
+    jumpstarter_project_exporters_dir: "{{ jumpstarter_repo_root }}/exporters"
+    jumpstarter_runtime_exporters_dir: /tmp/jumpstarter/exporters_validate_project
+  tasks:
+    - name: Stage from project
+      ansible.builtin.include_role:
+        name: jumpstarter.jumpstarter.jumpstarter_exporter_stage
+
+    - name: Assert staged exporter file exists
+      ansible.builtin.stat:
+        path: "{{ jumpstarter_runtime_exporters_dir }}/sim-vehicle-exporter.yaml"
+      register: _validate_st
+
+    - name: Confirm validation passed
+      ansible.builtin.assert:
+        that:
+          - _validate_st.stat.exists | bool
+        fail_msg: Expected sim-vehicle-exporter.yaml after project staging.

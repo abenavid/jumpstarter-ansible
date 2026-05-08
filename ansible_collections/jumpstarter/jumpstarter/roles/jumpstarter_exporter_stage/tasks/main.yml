@@ -1,0 +1,76 @@
+---
+# Stage ExporterConfig YAML into jumpstarter_runtime_exporters_dir for jmp --exporter-config.
+# jmp does not honor a generic "exporters search path" for local files; modules pass an explicit
+# --exporter-config path resolved under this directory (see jumpstarter_preflight / jumpstarter_shell).
+
+- name: Require exporter name for staging validation
+  ansible.builtin.assert:
+    that:
+      - jumpstarter_required_exporter_name is defined
+      - (jumpstarter_required_exporter_name | string | length) > 0
+    fail_msg: >-
+      jumpstarter_required_exporter_name must be set (defaults to jumpstarter_exporter_name).
+
+- name: Prefer /runner/project/exporters on AAP when present
+  when: jumpstarter_exporter_source == "project"
+  block:
+    - name: Detect automation project checkout exporters path
+      ansible.builtin.stat:
+        path: /runner/project/exporters
+      register: _jumpstarter_aap_exporters
+
+    - name: Use project exporters from automation checkout when available
+      ansible.builtin.set_fact:
+        jumpstarter_project_exporters_dir: /runner/project/exporters
+      when: _jumpstarter_aap_exporters.stat.exists | default(false)
+
+- name: Reset runtime exporters directory
+  ansible.builtin.file:
+    path: "{{ jumpstarter_runtime_exporters_dir }}"
+    state: absent
+
+- name: Create runtime exporters directory
+  ansible.builtin.file:
+    path: "{{ jumpstarter_runtime_exporters_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Stage exporters from local project tree
+  when: jumpstarter_exporter_source == "project"
+  ansible.builtin.include_tasks: project.yml
+
+- name: Stage exporters from Git
+  when: jumpstarter_exporter_source == "git"
+  ansible.builtin.include_tasks: git.yml
+
+- name: Validate required exporter file exists
+  ansible.builtin.stat:
+    path: "{{ jumpstarter_runtime_exporters_dir }}/{{ jumpstarter_required_exporter_name }}.yaml"
+  register: _jumpstarter_required_exporter_stat
+
+- name: Fail when required exporter file is missing after staging
+  ansible.builtin.fail:
+    msg: >-
+      Required exporter file missing after staging: expected
+      {{ jumpstarter_runtime_exporters_dir }}/{{ jumpstarter_required_exporter_name }}.yaml
+      (source={{ jumpstarter_exporter_source }}).
+  when: not (_jumpstarter_required_exporter_stat.stat.exists | default(false))
+
+- name: Load staged required exporter YAML
+  ansible.builtin.set_fact:
+    _jumpstarter_required_exporter_doc: >-
+      {{ lookup('file', jumpstarter_runtime_exporters_dir + '/' + jumpstarter_required_exporter_name + '.yaml') | from_yaml }}
+
+- name: Fail when ExporterConfig metadata.name does not match required exporter
+  ansible.builtin.fail:
+    msg: >-
+      Exporter YAML metadata.name is "{{ _jumpstarter_required_exporter_doc.metadata.name | default('') }}";
+      expected "{{ jumpstarter_required_exporter_name }}"
+      (file {{ jumpstarter_runtime_exporters_dir }}/{{ jumpstarter_required_exporter_name }}.yaml).
+  when: >-
+    (_jumpstarter_required_exporter_doc.metadata | default({})).name | default('') !=
+    jumpstarter_required_exporter_name
+
+- name: Remember runtime exporter path for jmp (--exporter-config)
+  ansible.builtin.set_fact:
+    jumpstarter_runtime_exporter_config_path: "{{ jumpstarter_runtime_exporters_dir }}/{{ jumpstarter_required_exporter_name }}.yaml"
