@@ -33,6 +33,10 @@
     simulator_jumpstarter_power_state: on
     simulator_jumpstarter_power_wait: 0
     # Optional Git persistence: see roles/simulator_git_persist/defaults/main.yml and docs/simulators.md.
+    # Per-host twin/state on the target (simulator_select / simulator_update_state). Optional definitions:
+    # simulators/<inventory_hostname>.{yml,yaml,json} with simulator_name, simulator_config (e.g. failure_rate), etc.
+    simulator_runtime_base_dir: /tmp/jumpstarter/simulated_devices
+    simulator_definitions_dir: "{{ playbook_dir }}/../simulators"
   tasks:
     - name: Select simulator for this host
       ansible.builtin.include_role:

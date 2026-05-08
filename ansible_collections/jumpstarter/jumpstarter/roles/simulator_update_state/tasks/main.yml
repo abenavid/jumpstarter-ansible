@@ -1,67 +1,99 @@
 ---
-- name: Resolve simulator JSON paths
+# Merge updates into file-backed simulator state.json and optionally twin.json.
+- name: Stat simulator state file
+  ansible.builtin.stat:
+    path: "{{ simulator_state_path }}"
+  register: _sim_update_state_stat
+
+- name: Read current simulator state
+  when: _sim_update_state_stat.stat.exists | default(false)
+  ansible.builtin.slurp:
+    path: "{{ simulator_state_path }}"
+  register: _sim_update_state_slurp
+
+- name: Parse simulator state from disk (or empty dict)
   ansible.builtin.set_fact:
-    _simulator_update_state_path: "{{ simulator_state_path | default(simulator_root ~ '/' ~ simulator_name ~ '/state.json', true) }}"
-    _simulator_update_twin_path: "{{ simulator_twin_path | default(simulator_root ~ '/' ~ simulator_name ~ '/twin.json', true) }}"
+    _sim_state_base: >-
+      {{
+        (
+          _sim_update_state_slurp.content | b64decode | from_json
+        )
+        if (_sim_update_state_stat.stat.exists | default(false))
+        else {}
+      }}
+
+- name: Merge state updates after optional key removal
+  ansible.builtin.set_fact:
+    _sim_state_merged: >-
+      {{
+        (
+          _sim_state_base
+          | dict2items
+          | rejectattr('key', 'in', simulator_state_remove_keys | default([]))
+          | items2dict
+        )
+        | combine(simulator_state_updates | default({}), recursive=True)
+      }}
+
+- name: Write simulator state.json
+  ansible.builtin.copy:
+    dest: "{{ simulator_state_path }}"
+    content: "{{ _sim_state_merged | to_nice_json }}\n"
+    mode: "0644"
 
 - name: Stamp time for twin last_updated
   ansible.builtin.set_fact:
     _simulator_update_ts: "{{ ansible_date_time.date }}T{{ ansible_date_time.time }}Z"
-  when: ansible_date_time is defined
+  when:
+    - simulator_update_twin | bool
+    - ansible_date_time is defined
 
 - name: Stamp time when gather_facts is disabled
   ansible.builtin.set_fact:
     _simulator_update_ts: "1970-01-01T00:00:00Z"
-  when: ansible_date_time is not defined
+  when:
+    - simulator_update_twin | bool
+    - ansible_date_time is not defined
 
-- name: Load current state.json
-  ansible.builtin.include_vars:
-    file: "{{ _simulator_update_state_path }}"
-    name: _simulator_state_before
-
-- name: Merge state updates
-  ansible.builtin.set_fact:
-    _simulator_state_after: "{{ _simulator_state_before | combine(simulator_state_updates | default({}), recursive=true) }}"
-
-- name: Remove selected keys from merged state (runtime-only fields)
-  ansible.builtin.set_fact:
-    _simulator_state_after: "{{ _simulator_state_after | dict2items | rejectattr('key', 'in', simulator_state_remove_keys | default([])) | items2dict }}"
-  when: (simulator_state_remove_keys | default([])) | length > 0
-
-- name: Write updated state.json
-  ansible.builtin.copy:
-    dest: "{{ _simulator_update_state_path }}"
-    content: "{{ _simulator_state_after | to_nice_json }}\n"
-    mode: "0644"
-
-- name: Load current twin.json
+- name: Stat simulator twin file
   when: simulator_update_twin | bool
-  ansible.builtin.include_vars:
-    file: "{{ _simulator_update_twin_path }}"
-    name: _simulator_twin_before
+  ansible.builtin.stat:
+    path: "{{ simulator_twin_path }}"
+  register: _sim_update_twin_stat
+
+- name: Read current simulator twin
+  when:
+    - simulator_update_twin | bool
+    - _sim_update_twin_stat.stat.exists | default(false)
+  ansible.builtin.slurp:
+    path: "{{ simulator_twin_path }}"
+  register: _sim_update_twin_slurp
+
+- name: Parse simulator twin from disk (or empty dict)
+  when: simulator_update_twin | bool
+  ansible.builtin.set_fact:
+    _sim_twin_base: >-
+      {{
+        (
+          _sim_update_twin_slurp.content | b64decode | from_json
+        )
+        if (_sim_update_twin_stat.stat.exists | default(false))
+        else {}
+      }}
 
 - name: Merge twin updates and refresh last_updated
   when: simulator_update_twin | bool
   ansible.builtin.set_fact:
-    _simulator_twin_after: >-
+    _sim_twin_merged: >-
       {{
-        _simulator_twin_before
-        | combine(simulator_twin_updates | default({}), recursive=true)
-        | combine({'last_updated': _simulator_update_ts}, recursive=true)
+        _sim_twin_base
+        | combine(simulator_twin_updates | default({}), recursive=True)
+        | combine({'last_updated': _simulator_update_ts}, recursive=True)
       }}
 
-- name: Write updated twin.json
+- name: Write simulator twin.json
   when: simulator_update_twin | bool
   ansible.builtin.copy:
-    dest: "{{ _simulator_update_twin_path }}"
-    content: "{{ _simulator_twin_after | to_nice_json }}\n"
+    dest: "{{ simulator_twin_path }}"
+    content: "{{ _sim_twin_merged | to_nice_json }}\n"
     mode: "0644"
-
-- name: Summarize simulator file updates
-  ansible.builtin.debug:
-    msg: >-
-      state.json={{ _simulator_update_state_path }}
-      state_keys={{ (simulator_state_updates | default({})).keys() | list | join(',') }}
-      twin_updated={{ simulator_update_twin | bool }}
-      twin_keys={{ (simulator_twin_updates | default({})).keys() | list | join(',') }}
-      last_updated={{ _simulator_update_ts if simulator_update_twin | bool else 'n/a' }}

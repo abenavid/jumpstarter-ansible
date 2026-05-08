@@ -1,7 +1,8 @@
 ---
-simulator_state_updates: {}
-simulator_state_remove_keys: []
-simulator_twin_updates: {}
 simulator_update_twin: true
-simulator_name: vehicle_basic
-simulator_root: "{{ playbook_dir }}/../simulators"
+simulator_state_remove_keys: []
+simulator_state_updates: {}
+simulator_twin_updates: {}
+simulator_runtime_base_dir: /tmp/jumpstarter/simulated_devices
+simulator_twin_path: "{{ simulator_runtime_base_dir }}/{{ inventory_hostname }}/twin.json"
+simulator_state_path: "{{ simulator_runtime_base_dir }}/{{ inventory_hostname }}/state.json"

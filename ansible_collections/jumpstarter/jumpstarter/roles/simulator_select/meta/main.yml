@@ -4,7 +4,8 @@ galaxy_info:
   namespace: jumpstarter
   author: Alex Benavides <abenavid@redhat.com>
   description: >
-    Select a file-backed simulator by name and expose paths and loaded twin/state/config as facts.
+    Resolve per-host file-backed simulator paths under simulator_runtime_base_dir, optionally load
+    <inventory_hostname>.* from simulator_definitions_dir, and seed or load twin.json / state.json.
   license: Apache-2.0
   min_ansible_version: "2.16"
   platforms:

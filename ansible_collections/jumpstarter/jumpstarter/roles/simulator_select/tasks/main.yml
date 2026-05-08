@@ -1,48 +1,109 @@
 ---
-- name: Compute simulator paths
+# Resolve simulator facts and paths; load or seed twin.json / state.json on the target host.
+- name: Publish Jumpstarter exporter name for later play tasks
   ansible.builtin.set_fact:
-    simulator_path: "{{ simulator_root }}/{{ simulator_name }}"
-    simulator_twin_path: "{{ simulator_root }}/{{ simulator_name }}/twin.json"
-    simulator_state_path: "{{ simulator_root }}/{{ simulator_name }}/state.json"
-    simulator_serial_log_path: "{{ simulator_root }}/{{ simulator_name }}/serial.log"
-    simulator_config_path: "{{ simulator_root }}/{{ simulator_name }}/config.yml"
+    jumpstarter_exporter_name: >-
+      {{
+        inventory_hostname
+        if (jumpstarter_exporter_name | default('', true) | string | trim | length) == 0
+        else jumpstarter_exporter_name
+      }}
 
-- name: Check simulator directory exists
+- name: Set simulator file paths for this host
+  ansible.builtin.set_fact:
+    simulator_host_dir: "{{ simulator_runtime_base_dir }}/{{ inventory_hostname }}"
+    simulator_twin_path: "{{ simulator_runtime_base_dir }}/{{ inventory_hostname }}/twin.json"
+    simulator_state_path: "{{ simulator_runtime_base_dir }}/{{ inventory_hostname }}/state.json"
+
+- name: Ensure per-host simulator runtime directory exists
+  ansible.builtin.file:
+    path: "{{ simulator_host_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Resolve optional simulator definition file under simulator_definitions_dir
+  ansible.builtin.set_fact:
+    _sim_def_path: "{{ lookup('ansible.builtin.first_found', params, errors='ignore') | default('', true) }}"
+  vars:
+    params:
+      files:
+        - "{{ inventory_hostname }}.yml"
+        - "{{ inventory_hostname }}.yaml"
+        - "{{ inventory_hostname }}.json"
+      paths:
+        - "{{ simulator_definitions_dir }}"
+
+- name: Load simulator definition from file
+  when: _sim_def_path | length > 0
+  ansible.builtin.include_vars:
+    file: "{{ _sim_def_path }}"
+    name: _sim_def
+
+- name: Use empty in-memory definition when no file matched
+  when: _sim_def_path | length == 0
+  ansible.builtin.set_fact:
+    _sim_def: {}
+
+- name: Merge simulator_name and simulator_config from inventory and definition file
+  ansible.builtin.set_fact:
+    simulator_name: "{{ simulator_name | default(_sim_def.simulator_name | default(inventory_hostname)) }}"
+    simulator_config: "{{ simulator_config | default(_sim_def.simulator_config | default({})) }}"
+
+- name: Check for existing twin.json
   ansible.builtin.stat:
-    path: "{{ simulator_path }}"
-  register: _simulator_select_dir_stat
+    path: "{{ simulator_twin_path }}"
+  register: _sim_select_twin_stat
 
-- name: Fail when simulator directory is missing
-  ansible.builtin.fail:
-    msg: >-
-      Simulator directory not found: {{ simulator_path }}.
-      Expected {{ simulator_name }} under {{ simulator_root }} with twin.json, state.json, and config.yml.
-  when: >-
-    not (
-      _simulator_select_dir_stat.stat.exists | default(false)
-      and _simulator_select_dir_stat.stat.isdir | default(false)
-    )
+- name: Load simulator twin from disk
+  when: _sim_select_twin_stat.stat.exists | default(false)
+  ansible.builtin.slurp:
+    path: "{{ simulator_twin_path }}"
+  register: _sim_select_twin_slurp
 
-- name: Load simulator config.yml
-  ansible.builtin.include_vars:
-    file: "{{ simulator_config_path }}"
-    name: simulator_config
+- name: Parse twin from disk into simulator_twin
+  when: _sim_select_twin_stat.stat.exists | default(false)
+  ansible.builtin.set_fact:
+    simulator_twin: "{{ _sim_select_twin_slurp.content | b64decode | from_json }}"
 
-- name: Load simulator twin.json
-  ansible.builtin.include_vars:
-    file: "{{ simulator_twin_path }}"
-    name: simulator_twin
+- name: Seed new simulator twin when twin.json is absent
+  when: not (_sim_select_twin_stat.stat.exists | default(false))
+  ansible.builtin.set_fact:
+    simulator_twin:
+      metadata: >-
+        {{
+          (
+            simulator_metadata
+            | default(_sim_def.simulator_metadata | default({}))
+          )
+          | combine(
+              {
+                'simulator_name': simulator_name,
+                'inventory_hostname': inventory_hostname,
+              },
+              recursive=True,
+            )
+        }}
+      status: unknown
+      power_state: unknown
+      last_test_result: null
+      exporter: "{{ jumpstarter_exporter_name }}"
 
-- name: Load simulator state.json
-  ansible.builtin.include_vars:
-    file: "{{ simulator_state_path }}"
-    name: simulator_state
+- name: Write seeded twin.json when it did not exist
+  when: not (_sim_select_twin_stat.stat.exists | default(false))
+  ansible.builtin.copy:
+    dest: "{{ simulator_twin_path }}"
+    content: "{{ simulator_twin | to_nice_json }}\n"
+    mode: "0644"
 
-- name: Summarize selected simulator
-  ansible.builtin.debug:
-    msg: >-
-      simulator={{ simulator_name }} path={{ simulator_path }}
-      device_id={{ simulator_twin.device_id | default('?') }}
-      type={{ simulator_twin.device_type | default('?') }}
-      twin_status={{ simulator_twin.status | default('?') }} power={{ simulator_twin.power_state | default('?') }}
-      state_power={{ simulator_state.power | default('?') }} boot={{ simulator_state.boot_status | default('?') }}
+- name: Check for existing state.json
+  ansible.builtin.stat:
+    path: "{{ simulator_state_path }}"
+  register: _sim_select_state_stat
+
+- name: Write empty state object when state.json is absent
+  when: not (_sim_select_state_stat.stat.exists | default(false))
+  ansible.builtin.copy:
+    dest: "{{ simulator_state_path }}"
+    content: |
+      {}
+    mode: "0644"
