@@ -38,6 +38,34 @@
     simulator_runtime_base_dir: /tmp/jumpstarter/simulated_devices
     simulator_definitions_dir: "{{ playbook_dir }}/../simulators"
   tasks:
+    - name: Resolve whether Jumpstarter integration is enabled for this run
+      ansible.builtin.set_fact:
+        simulator_jumpstarter_enabled: >-
+          {{
+            (
+              (simulator_use_jumpstarter | default(false) | type_debug) == 'bool'
+              and (simulator_use_jumpstarter | default(false) | bool)
+            )
+            or (
+              (simulator_use_jumpstarter | default(false) | type_debug) != 'bool'
+              and (
+                (
+                  (simulator_use_jumpstarter | default('') | string | lower | trim)
+                  | regex_search('^(true|1|yes|on|y)$')
+                ) is not none
+              )
+            )
+          }}
+
+    - name: Simulator mode (file-only vs Jumpstarter)
+      ansible.builtin.debug:
+        msg: >-
+          {{
+            'Jumpstarter enabled simulator mode (staging when enabled, preflight, optional lease/shell/power)'
+            if (simulator_jumpstarter_enabled | bool)
+            else 'File-only simulator mode (no Jumpstarter preflight, jmp, lease, shell, or power)'
+          }}
+
     - name: Select simulator for this host
       ansible.builtin.include_role:
         name: jumpstarter.jumpstarter.simulator_select
@@ -47,13 +75,13 @@
         msg: "{{ simulator_twin.metadata | default({}) }}"
 
     - name: Record simulator failure rate from config (file-only path)
-      when: not (simulator_use_jumpstarter | bool)
+      when: not (simulator_jumpstarter_enabled | bool)
       ansible.builtin.set_fact:
         simulator_failure_rate: "{{ (simulator_config.failure_rate | default(0.0)) | float }}"
 
     - name: Sample random roll for probabilistic file-only failures (deterministic seed)
       when:
-        - not (simulator_use_jumpstarter | bool)
+        - not (simulator_jumpstarter_enabled | bool)
         - simulator_enable_probabilistic_failures | bool
         - simulator_random_seed is not none
         - ((simulator_random_seed | string) | trim | length) > 0
@@ -75,7 +103,7 @@
 
     - name: Sample random roll for probabilistic file-only failures (non-deterministic)
       when:
-        - not (simulator_use_jumpstarter | bool)
+        - not (simulator_jumpstarter_enabled | bool)
         - simulator_enable_probabilistic_failures | bool
         - >-
           simulator_random_seed is none
@@ -85,20 +113,20 @@
 
     - name: Decide probabilistic simulated failure (file-only)
       when:
-        - not (simulator_use_jumpstarter | bool)
+        - not (simulator_jumpstarter_enabled | bool)
         - simulator_enable_probabilistic_failures | bool
       ansible.builtin.set_fact:
         simulator_should_fail: "{{ (simulator_roll | float) < (simulator_failure_rate | float) }}"
 
     - name: Disable probabilistic simulated failure when feature is off (file-only)
       when:
-        - not (simulator_use_jumpstarter | bool)
+        - not (simulator_jumpstarter_enabled | bool)
         - not (simulator_enable_probabilistic_failures | bool)
       ansible.builtin.set_fact:
         simulator_should_fail: false
 
     - name: Prepare file-only demo state/twin payloads
-      when: not (simulator_use_jumpstarter | bool)
+      when: not (simulator_jumpstarter_enabled | bool)
       ansible.builtin.set_fact:
         _sim_file_demo_state_pass:
           power: "on"
@@ -130,7 +158,8 @@
           last_test_result: "fail"
           exporter: "{{ jumpstarter_exporter_name }}"
 
-    - name: Apply initial simulator state (pre-connection)
+    - name: Apply initial simulator state (pre-connection, Jumpstarter mode only)
+      when: simulator_jumpstarter_enabled | bool
       ansible.builtin.include_role:
         name: jumpstarter.jumpstarter.simulator_update_state
       vars:
@@ -146,33 +175,58 @@
         simulator_update_twin: true
 
     - name: File-only demo completion (twin/state files only)
-      when: not (simulator_use_jumpstarter | bool)
-      ansible.builtin.include_role:
-        name: jumpstarter.jumpstarter.simulator_update_state
-      vars:
-        simulator_state_remove_keys:
-          - last_test_result
-        simulator_state_updates: >-
-          {{
-            _sim_file_demo_state_fail
-            if (simulator_should_fail | bool)
-            else _sim_file_demo_state_pass
-          }}
-        simulator_twin_updates: >-
-          {{
-            _sim_file_demo_twin_fail
-            if (simulator_should_fail | bool)
-            else _sim_file_demo_twin_pass
-          }}
-        simulator_update_twin: true
+      when: not (simulator_jumpstarter_enabled | bool)
+      block:
+        - name: Write file-only simulator twin and state
+          ansible.builtin.include_role:
+            name: jumpstarter.jumpstarter.simulator_update_state
+          vars:
+            simulator_state_remove_keys:
+              - last_test_result
+            simulator_state_updates: >-
+              {{
+                _sim_file_demo_state_fail
+                if (simulator_should_fail | bool)
+                else _sim_file_demo_state_pass
+              }}
+            simulator_twin_updates: >-
+              {{
+                _sim_file_demo_twin_fail
+                if (simulator_should_fail | bool)
+                else _sim_file_demo_twin_pass
+              }}
+            simulator_update_twin: true
+
+      rescue:
+        - name: Record file-only simulator run failure in state and twin
+          ansible.builtin.include_role:
+            name: jumpstarter.jumpstarter.simulator_update_state
+          vars:
+            simulator_state_remove_keys:
+              - last_test_result
+            simulator_state_updates:
+              health: "failed"
+              last_command: "demo_select_simulator"
+              error: "{{ ansible_failed_result.msg | default('unknown error') }}"
+            simulator_twin_updates:
+              status: "failed"
+              last_test_result: "fail"
+              exporter: "{{ jumpstarter_exporter_name }}"
+            simulator_update_twin: true
+
+        - name: Re-raise file-only failure after state is recorded
+          ansible.builtin.fail:
+            msg: "{{ ansible_failed_result.msg | default('file-only simulator update failed') }}"
 
     - name: Stage exporter YAML into runtime path (Jumpstarter mode)
-      when: simulator_use_jumpstarter | bool
+      when:
+        - simulator_jumpstarter_enabled | bool
+        - jumpstarter_stage_exporters | default(true) | bool
       ansible.builtin.include_role:
         name: jumpstarter.jumpstarter.jumpstarter_exporter_stage
 
     - name: Optional Jumpstarter bridge (preflight, lease, jmp commands)
-      when: simulator_use_jumpstarter | bool
+      when: simulator_jumpstarter_enabled | bool
       block:
         - name: Initialize demo Jumpstarter lease tracking
           ansible.builtin.set_fact:
@@ -183,13 +237,7 @@
               jumpstarter.jumpstarter.jumpstarter_preflight:
                 exporter: "{{ jumpstarter_exporter_name }}"
                 exporters_dir: "{{ jumpstarter_runtime_exporters_dir }}"
-                client_config: >-
-                  {{
-                    jumpstarter_client_config
-                    if jumpstarter_client_config is not none
-                    and (jumpstarter_client_config | string | length) > 0
-                    else omit
-                  }}
+                client_config: "{{ jumpstarter_client_config | default(omit, true) }}"
 
             - name: Acquire Jumpstarter lease
               when: jumpstarter_use_lease | bool
@@ -198,13 +246,7 @@
                 selector: "exporter={{ jumpstarter_exporter_name }}"
                 duration: "{{ jumpstarter_lease_duration }}"
                 output: name
-                client_config: >-
-                  {{
-                    jumpstarter_client_config
-                    if jumpstarter_client_config is not none
-                    and (jumpstarter_client_config | string | length) > 0
-                    else omit
-                  }}
+                client_config: "{{ jumpstarter_client_config | default(omit, true) }}"
               register: _sim_demo_lease_acquire
 
             - name: Remember lease name for always-released cleanup
@@ -265,13 +307,6 @@
                 simulator_update_twin: true
 
           rescue:
-            - name: Capture Jumpstarter failure details
-              ansible.builtin.set_fact:
-                _sim_demo_js_error: >-
-                  {{ ansible_failed_result.msg | default('unknown error') }}
-                _sim_demo_js_task: >-
-                  {{ ansible_failed_task.name | default('unknown task') }}
-
             - name: Record Jumpstarter bridge failure in simulator files
               ansible.builtin.include_role:
                 name: jumpstarter.jumpstarter.simulator_update_state
@@ -281,8 +316,7 @@
                 simulator_state_updates:
                   health: "failed"
                   last_command: "demo_select_simulator"
-                  error: >-
-                    {{ _sim_demo_js_task }}: {{ _sim_demo_js_error }}
+                  error: "{{ ansible_failed_result.msg | default('unknown error') }}"
                 simulator_twin_updates:
                   status: "failed"
                   last_test_result: "fail"
@@ -297,13 +331,7 @@
               jumpstarter.jumpstarter.jumpstarter_lease:
                 state: release
                 lease_name: "{{ _sim_demo_lease_name }}"
-                client_config: >-
-                  {{
-                    jumpstarter_client_config
-                    if jumpstarter_client_config is not none
-                    and (jumpstarter_client_config | string | length) > 0
-                    else omit
-                  }}
+                client_config: "{{ jumpstarter_client_config | default(omit, true) }}"
               ignore_errors: true
 
     - name: Reload twin after playbook steps

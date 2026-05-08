@@ -1,5 +1,7 @@
 ---
 # Writable per-host twin/state JSON used by demo_select_simulator and simulator_git_persist.
+# demo_select_simulator sets simulator_jumpstarter_enabled from this (and survey/extra vars).
+simulator_use_jumpstarter: false
 simulator_runtime_base_dir: /tmp/jumpstarter/simulated_devices
 # Optional YAML/JSON files: <inventory_hostname>.{yml,yaml,json} under this directory.
 simulator_definitions_dir: "{{ playbook_dir }}/../simulators"
