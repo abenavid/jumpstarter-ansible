@@ -3,15 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>PhysicalOps Device Twin Dashboard</title>
+    <title>Fleet State Dashboard</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <header class="topbar">
       <div class="topbar__title">
         <div>
-          <h1>PhysicalOps Device Twin Dashboard</h1>
-          <p class="subtitle">Git backed simulator state from AAP</p>
+          <h1>Fleet State Dashboard</h1>
+          <p class="subtitle">
+            Live fleet runtime state powered by AAP automation and Git backed
+            device state
+          </p>
         </div>
       </div>
       <div class="topbar__actions">
@@ -100,10 +103,15 @@
     </main>
 
     <footer class="footer">
-      <div class="muted">
-        Reads <code>runtime_state/simulated_devices/&lt;device&gt;/{twin.json,state.json}</code>
-        from this repo (GitHub Pages).
-      </div>
+      <p class="muted">
+        This dashboard visualizes simulator and edge device runtime state
+        generated through Ansible Automation Platform workflows.
+      </p>
+      <p class="muted">
+        Data source:
+        <code>runtime_state/simulated_devices/&lt;device&gt;/{twin.json,state.json}</code>
+        in this repository (GitHub Pages).
+      </p>
     </footer>
 
     <script src="./app.js"></script>

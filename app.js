@@ -1,4 +1,4 @@
-/* Plain JS GitHub Pages dashboard (no deps). */
+/* Plain JS GitHub Pages fleet state dashboard (no deps). */
 
 const KNOWN_DEVICES = [
   "sim_gateway_001",
@@ -341,7 +341,9 @@ function renderDetails(device) {
     return;
   }
 
-  detailHint.textContent = device.available ? "Merged twin/state view." : "JSON not found (unavailable).";
+  detailHint.textContent = device.available
+    ? "Merged runtime state from twin.json and state.json."
+    : "JSON not found (unavailable).";
 
   const kv = document.createElement("div");
   kv.className = "kv";
@@ -356,8 +358,8 @@ function renderDetails(device) {
     ["OTA Status", device.otaStatus || "—"],
     ["Last Test Result", device.lastTestResult || "—"],
     ["Last Updated", device.updatedAt ? formatDateShort(device.updatedAt) : "—"],
-    ["Twin path", `${RUNTIME_BASE}/${device.device}/twin.json`],
-    ["State path", `${RUNTIME_BASE}/${device.device}/state.json`],
+    ["twin.json path", `${RUNTIME_BASE}/${device.device}/twin.json`],
+    ["state.json path", `${RUNTIME_BASE}/${device.device}/state.json`],
   ];
 
   for (const [k, v] of rows) {
