@@ -1,0 +1,11 @@
+{
+    "exporter": "sim-infotainment-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-08T02:38:14Z",
+    "metadata": {
+        "inventory_hostname": "sim_infotainment_001",
+        "simulator_name": "infotainment_lab"
+    },
+    "power_state": "on",
+    "status": "testing"
+}

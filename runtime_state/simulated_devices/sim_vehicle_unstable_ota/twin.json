@@ -1,0 +1,11 @@
+{
+    "exporter": "sim-vehicle-ota-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-08T02:38:12Z",
+    "metadata": {
+        "inventory_hostname": "sim_vehicle_unstable_ota",
+        "simulator_name": "vehicle_unstable_ota"
+    },
+    "power_state": "on",
+    "status": "testing"
+}

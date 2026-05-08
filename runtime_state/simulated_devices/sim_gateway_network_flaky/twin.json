@@ -1,0 +1,11 @@
+{
+    "exporter": "sim-gateway-flaky-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-08T02:38:14Z",
+    "metadata": {
+        "inventory_hostname": "sim_gateway_network_flaky",
+        "simulator_name": "gateway_network_flaky"
+    },
+    "power_state": "on",
+    "status": "testing"
+}

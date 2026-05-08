@@ -1,0 +1,11 @@
+{
+    "exporter": "sim-infotainment-screen-exporter",
+    "last_test_result": "pass",
+    "last_updated": "2026-05-08T02:38:12Z",
+    "metadata": {
+        "inventory_hostname": "sim_infotainment_screen_failure",
+        "simulator_name": "infotainment_screen_failure"
+    },
+    "power_state": "on",
+    "status": "testing"
+}
