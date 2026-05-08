@@ -1,11 +1,11 @@
 {
     "exporter": "sim-sensor-hub-exporter",
-    "last_test_result": "pass",
-    "last_updated": "2026-05-08T02:38:13Z",
+    "last_test_result": "fail",
+    "last_updated": "2026-05-08T02:43:12Z",
     "metadata": {
         "inventory_hostname": "sim_sensor_hub_degraded",
         "simulator_name": "sensor_hub_degraded"
     },
-    "power_state": "on",
-    "status": "testing"
+    "power_state": "unknown",
+    "status": "failed"
 }

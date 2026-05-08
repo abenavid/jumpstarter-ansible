@@ -1,8 +1,5 @@
 {
-    "boot_status": "running",
-    "error": null,
-    "health": "ok",
-    "last_command": "demo_select_simulator",
-    "ota_status": "idle",
-    "power": "on"
+    "error": "Jumpstarter preflight: Unsupported parameters for (jumpstarter.jumpstarter.jumpstarter_preflight) module: exporter_config_path. Supported parameters include: check_config_dirs, client, client_config, exporter, exporters_dir, fail_on_missing_exporter, skip_exporter_query, timeout, user_config_dir.",
+    "health": "failed",
+    "last_command": "demo_select_simulator"
 }
